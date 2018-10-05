@@ -1,11 +1,12 @@
 import java.awt.Dimension;
 import java.awt.Toolkit;
-import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.scene.*;
 import javafx.stage.Stage;
+import javafx.scene.control.*;
 import javafx.scene.input.*;
+import javafx.scene.layout.*;
 import javafx.scene.paint.*;
 import javafx.scene.shape.*;
 import javafx.scene.transform.*;
@@ -18,16 +19,17 @@ public class Polychrome extends Application {
 
   final PerspectiveCamera mainCam = new PerspectiveCamera(true);
 
-  // Camera Related Fields
+  // camera related fields
   static final double CAM_INIT_DISTANCE = -100;
-  static final double CAM_MOVE_SPEED = 0.1;
   static final double CAM_NEAR_CLIP = 0.1;
   static final double CAM_FAR_CLIP = 1000;
   static final double CAM_MIN_ZOOM = -50;
   static final double CAM_MAX_ZOOM = -300;
   static final double AXIS_LENGTH = 10;
+  // note that camera move speed will vary with zoom level
+  static double cam_speed = CAM_INIT_DISTANCE / -1000.0;
 
-  // Material Color Fields
+  // material color fields
   final PhongMaterial red = new PhongMaterial(Color.web("ec5f66"));
   final PhongMaterial orange = new PhongMaterial(Color.web("f9ae58"));
   final PhongMaterial yellow = new PhongMaterial(Color.web("f9d547"));
@@ -61,7 +63,7 @@ public class Polychrome extends Application {
     world.getChildren().addAll(axisGroup);
   }
 
-  // Mouse Movement Fields - X0 is x naught and Xf is x final.
+  // mouse movement fields - X0 is x naught and Xf is x final.
   double mouseXf;
   double mouseYf;
   double mouseX0;
@@ -69,7 +71,7 @@ public class Polychrome extends Application {
   double mouseDeltaX;
   double mouseDeltaY;
 
-  // Node Selection Fields
+  // node selection fields
   Sphere selectedNode;
   PhongMaterial selectedMaterial;
 
@@ -117,8 +119,8 @@ public class Polychrome extends Application {
         mouseDeltaY = mouseYf - mouseY0;
 
         if (event.isPrimaryButtonDown()) {
-          mainCam.setTranslateX(mainCam.getTranslateX() + mouseDeltaX*CAM_MOVE_SPEED);
-          mainCam.setTranslateY(mainCam.getTranslateY() + mouseDeltaY*CAM_MOVE_SPEED);
+          mainCam.setTranslateX(mainCam.getTranslateX() + mouseDeltaX*cam_speed);
+          mainCam.setTranslateY(mainCam.getTranslateY() + mouseDeltaY*cam_speed);
         }
       }
     });
@@ -131,12 +133,15 @@ public class Polychrome extends Application {
         if (!event.isInertia()) {
           if (zoom >= CAM_MIN_ZOOM) {
             mainCam.setTranslateZ(CAM_MIN_ZOOM);
+            cam_speed = mainCam.getTranslateZ() / -1000.0;
           }
           else if (zoom <= CAM_MAX_ZOOM) {
             mainCam.setTranslateZ(CAM_MAX_ZOOM);
+            cam_speed = mainCam.getTranslateZ() / -1000.0;
           }
           else {
             mainCam.setTranslateZ(mainCam.getTranslateZ() + event.getDeltaY());
+            cam_speed = mainCam.getTranslateZ() / -1000.0;
           }
         }
       }
@@ -208,7 +213,7 @@ public class Polychrome extends Application {
     scene.setCamera(mainCam);
   }
 
-  // Ignored in javafx applications
+  // ignored in javafx applications
   public static void main(String[] args) {
     launch(args);
   }
