@@ -1,264 +1,220 @@
+import java.awt.Dimension;
+import java.awt.Toolkit;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.scene.*;
 import javafx.stage.Stage;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.ScrollEvent;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.PhongMaterial;
-import javafx.scene.shape.Box;
-import javafx.scene.shape.Cylinder;
-import javafx.scene.shape.Sphere;
-import javafx.scene.transform.Rotate;
+import javafx.scene.control.*;
+import javafx.scene.input.*;
+import javafx.scene.layout.*;
+import javafx.scene.paint.*;
+import javafx.scene.shape.*;
+import javafx.scene.transform.*;
 
 public class Polychrome extends Application {
+  final Group root = new Group();
+  final Group axisGroup = new Group();
+  final Group geneSequence = new Group();
+  final Group world = new Group();
 
-    final Group root = new Group();
-    final pGroup axisGroup = new pGroup();
-    final pGroup geneSequence = new pGroup();
-    final pGroup world = new pGroup();
+  final PerspectiveCamera mainCam = new PerspectiveCamera(true);
 
-    final PerspectiveCamera cam = new PerspectiveCamera(true);
-    final pGroup camGroup1 = new pGroup();
-    final pGroup camGroup2 = new pGroup();
-    final pGroup camGroup3 = new pGroup();
-    private static final double CAM_INIT_DISTANCE = -200;
-    private static final double CAM_INIT_X_ANGLE = 30.0;
-    private static final double CAM_INIT_Y_ANGLE = 315.0;
-    private static final double CAM_NEAR_CLIP = 0.1;
-    private static final double CAM_FAR_CLIP = 10000.0;
-    private static final double AXIS_LENGTH = 250.0;
-    private static final double BASE_ANGLE = 90;
-    private static final double CONTROL_MULTIPLIER = 0.3;
-    private static final double SHIFT_MULTIPLIER = 3.0;
-    private static final double MOUSE_SPEED = 0.1;
-    private static final double ROTATION_SPEED = 2.0;
-    private static final double TRACK_SPEED = 0.5;
+  // camera related fields
+  static final double CAM_INIT_DISTANCE = -100;
+  static final double CAM_NEAR_CLIP = 0.1;
+  static final double CAM_FAR_CLIP = 1000;
+  static final double CAM_MIN_ZOOM = -50;
+  static final double CAM_MAX_ZOOM = -300;
+  static final double AXIS_LENGTH = 10;
+  // note that camera move speed will vary with zoom level
+  static double cam_speed = CAM_INIT_DISTANCE / -1000.0;
 
-    double mousePosX;
-    double mousePosY;
-    double mouseOldX;
-    double mouseOldY;
-    double mouseDeltaX;
-    double mouseDeltaY;
+  // material color fields
+  final PhongMaterial red = new PhongMaterial(Color.web("ec5f66"));
+  final PhongMaterial orange = new PhongMaterial(Color.web("f9ae58"));
+  final PhongMaterial yellow = new PhongMaterial(Color.web("f9d547"));
+  final PhongMaterial green = new PhongMaterial(Color.web("99c794"));
+  final PhongMaterial blue = new PhongMaterial(Color.web("6699cc"));
+  final PhongMaterial purple = new PhongMaterial(Color.web("c695c6"));
+  final PhongMaterial grey = new PhongMaterial(Color.web("d8dee9"));
+  final PhongMaterial white = new PhongMaterial(Color.WHITE);
 
-    private void buildCam() {
-        root.getChildren().add(camGroup1);
-        camGroup1.getChildren().add(camGroup2);
-        camGroup2.getChildren().add(camGroup3);
-        camGroup3.getChildren().add(cam);
-        camGroup3.setRotateZ(180.0);
+  private void buildCam() {
+    root.getChildren().add(mainCam);
 
-        cam.setNearClip(CAM_NEAR_CLIP);
-        cam.setFarClip(CAM_FAR_CLIP);
-        cam.setTranslateZ(CAM_INIT_DISTANCE);
-        camGroup1.ry.setAngle(CAM_INIT_Y_ANGLE);
-        camGroup1.rx.setAngle(CAM_INIT_X_ANGLE);
+    mainCam.setNearClip(CAM_NEAR_CLIP);
+    mainCam.setFarClip(CAM_FAR_CLIP);
+    mainCam.setTranslateZ(CAM_INIT_DISTANCE);
+    // makes mouse drag behave as expected
+    mainCam.setRotate(180);
+  }
+
+  private void buildAxes() {
+    final Box xAxis = new Box(AXIS_LENGTH, 0.5, 0.5);
+    final Box yAxis = new Box(0.5, AXIS_LENGTH, 0.5);
+    final Box zAxis = new Box(0.5, 0.5, AXIS_LENGTH);
+
+    xAxis.setMaterial(red);
+    yAxis.setMaterial(green);
+    zAxis.setMaterial(blue);
+
+    axisGroup.getChildren().addAll(xAxis, yAxis, zAxis);
+    axisGroup.setVisible(false);
+    world.getChildren().addAll(axisGroup);
+  }
+
+  // mouse movement fields - X0 is x naught and Xf is x final.
+  double mouseXf;
+  double mouseYf;
+  double mouseX0;
+  double mouseY0;
+  double mouseDeltaX;
+  double mouseDeltaY;
+
+  // node selection fields
+  Sphere selectedNode;
+  PhongMaterial selectedMaterial;
+
+  private void handleMouse(Scene scene, final Node root) {
+    scene.setOnMouseClicked(new EventHandler<MouseEvent>() {
+      @Override
+      public void handle(MouseEvent event) {
+        PickResult result = event.getPickResult();
+        if (result.getIntersectedNode() instanceof Sphere) {
+          // reset color of previously selected
+          if (selectedNode != null) {
+            selectedNode.setMaterial(selectedMaterial);
+          }
+          // change color of selection
+          selectedNode = (Sphere) result.getIntersectedNode();
+          selectedMaterial = (PhongMaterial) selectedNode.getMaterial();
+          selectedNode.setMaterial(green);
+          return;
+        }
+        if (selectedNode != null) {
+          selectedNode.setMaterial(selectedMaterial);
+        }
+        selectedNode = null;
+        selectedMaterial = null;
+      }
+    });
+
+    scene.setOnMousePressed(new EventHandler<MouseEvent>() {
+      @Override
+      public void handle(MouseEvent event) {
+        mouseXf = event.getSceneX();
+        mouseYf = event.getSceneY();
+      }
+    });
+
+    scene.setOnMouseDragged(new EventHandler<MouseEvent>() {
+      @Override
+      public void handle(MouseEvent event) {
+        // new x,y naught is previous x,y final
+        mouseX0 = mouseXf;
+        mouseY0 = mouseYf;
+        mouseXf = event.getSceneX();
+        mouseYf = event.getSceneY();
+        mouseDeltaX = mouseXf - mouseX0;
+        mouseDeltaY = mouseYf - mouseY0;
+
+        if (event.isPrimaryButtonDown()) {
+          mainCam.setTranslateX(mainCam.getTranslateX() + mouseDeltaX*cam_speed);
+          mainCam.setTranslateY(mainCam.getTranslateY() + mouseDeltaY*cam_speed);
+        }
+      }
+    });
+
+    scene.setOnScroll(new EventHandler<ScrollEvent>() {
+      @Override
+      public void handle(ScrollEvent event) {
+        double zoom = mainCam.getTranslateZ() + event.getDeltaY();
+
+        if (!event.isInertia()) {
+          if (zoom >= CAM_MIN_ZOOM) {
+            mainCam.setTranslateZ(CAM_MIN_ZOOM);
+            cam_speed = mainCam.getTranslateZ() / -1000.0;
+          }
+          else if (zoom <= CAM_MAX_ZOOM) {
+            mainCam.setTranslateZ(CAM_MAX_ZOOM);
+            cam_speed = mainCam.getTranslateZ() / -1000.0;
+          }
+          else {
+            mainCam.setTranslateZ(mainCam.getTranslateZ() + event.getDeltaY());
+            cam_speed = mainCam.getTranslateZ() / -1000.0;
+          }
+        }
+      }
+    });
+  }
+
+  private Sphere[] buildNodes(int n) {
+    Sphere[] nodes = new Sphere[n];
+    PosData[] pos = new PosData[n];
+    for (int i = 0; i < n; i++) {
+      PosData p = new PosData();
+      p.id = i;
+      if (i == 0 || i == n-1) {
+        p.theta = 2 * Math.PI;
+      }
+      else {
+        p.theta = 110.0 * Math.PI / 180.0;
+      }
+      if (i == 0 || i == n-1 || i == n-2) {
+        p.tao = 2 * Math.PI;
+      }
+      else {
+        p.tao = -150.0 * Math.PI / 180.0;
+      }
+      pos[i] = p;
     }
 
-    private void buildAxes() {
-        final PhongMaterial redMaterial = new PhongMaterial();
-        redMaterial.setDiffuseColor(Color.DARKRED);
-        redMaterial.setSpecularColor(Color.RED);
-
-        final PhongMaterial greenMaterial = new PhongMaterial();
-        greenMaterial.setDiffuseColor(Color.DARKGREEN);
-        greenMaterial.setSpecularColor(Color.GREEN);
-
-        final PhongMaterial blueMaterial = new PhongMaterial();
-        blueMaterial.setDiffuseColor(Color.DARKBLUE);
-        blueMaterial.setSpecularColor(Color.BLUE);
-
-        final Box xAxis = new Box(AXIS_LENGTH, 1, 1);
-        final Box yAxis = new Box(1, AXIS_LENGTH, 1);
-        final Box zAxis = new Box(1, 1, AXIS_LENGTH);
-
-        xAxis.setMaterial(redMaterial);
-        yAxis.setMaterial(greenMaterial);
-        zAxis.setMaterial(blueMaterial);
-
-        axisGroup.getChildren().addAll(xAxis, yAxis, zAxis);
-        axisGroup.setVisible(false);
-        world.getChildren().addAll(axisGroup);
+    PDBData[] pdb = DihedralUtility.pos2pdb(pos);
+    for (int i = 0; i < n; i++) {
+      PDBData p = pdb[i];
+      Sphere s = new Sphere(1);
+      s.setTranslateX(p.ca.x);
+      s.setTranslateY(p.ca.y);
+      s.setTranslateZ(p.ca.z);
+      nodes[i] = s;
     }
+    return nodes;
+  }
 
-    private void handleMouse(Scene scene, final Node root) {
-        scene.setOnMousePressed(new EventHandler<MouseEvent>() {
-            @Override public void handle(MouseEvent me) {
-                mousePosX = me.getSceneX();
-                mousePosY = me.getSceneY();
-                mouseOldX = me.getSceneX();
-                mouseOldY = me.getSceneY();
-            }
-        });
-
-        scene.setOnMouseDragged(new EventHandler<MouseEvent>() {
-            @Override public void handle(MouseEvent me) {
-                mouseOldX = mousePosX;
-                mouseOldY = mousePosY;
-                mousePosX = me.getSceneX();
-                mousePosY = me.getSceneY();
-                mouseDeltaX = mousePosX - mouseOldX;
-                mouseDeltaY = mousePosY - mouseOldY;
-
-                double modifier = 1.0;
-
-                if (me.isControlDown()) {
-                    modifier = CONTROL_MULTIPLIER;
-                }
-                if (me.isShiftDown()) {
-                    modifier = SHIFT_MULTIPLIER;
-                }
-                if (me.isPrimaryButtonDown()) {
-                    camGroup1.ry.setAngle(camGroup1.ry.getAngle() - mouseDeltaX*MOUSE_SPEED*modifier*ROTATION_SPEED);
-                    camGroup1.rx.setAngle(camGroup1.rx.getAngle() + mouseDeltaY*MOUSE_SPEED*modifier*ROTATION_SPEED);
-                }
-                // TODO - modifies camera position. Set to be used when button
-                // camera button movement selected in UI
-
-                // else if (me.isAltDown() && me.isSecondaryButtonDown()) {
-                //     camGroup2.t.setX(camGroup2.t.getX() + mouseDeltaX*MOUSE_SPEED*modifier*TRACK_SPEED);
-                //     camGroup2.t.setY(camGroup2.t.getY() + mouseDeltaY*MOUSE_SPEED*modifier*TRACK_SPEED);
-                // }
-            }
-        });
-
-        scene.setOnScroll(new EventHandler<ScrollEvent>() {
-            @Override public  void handle(ScrollEvent se) {
-                if (!se.isInertia()) {
-                    cam.setTranslateZ(cam.getTranslateZ() + se.getDeltaY());
-                }
-                // mouseOldY = mousePosY;
-                // mousePosY = se.getSceneY();
-                // mouseDeltaY = mousePosY - mouseOldY;
-
-                // double modifier = 1.0;
-
-                // if (se.isControlDown()) {
-                //     modifier = CONTROL_MULTIPLIER;
-                // }
-                // if (se.isShiftDown()) {
-                //     modifier = SHIFT_MULTIPLIER;
-                // }
-                // double z = cam.getTranslateZ();
-                // double newZ = z + -1*mouseDeltaY*MOUSE_SPEED*modifier;
-                // cam.setTranslateZ(newZ);
-            }
-        });
+  private void buildSequence() {
+    Group sequenceGroup = new Group();
+    Sphere[] nodes = buildNodes(10);
+    for (Sphere s : nodes) {
+      s.setMaterial(purple);
+      sequenceGroup.getChildren().add(s);
     }
+    geneSequence.getChildren().add(sequenceGroup);
+    world.getChildren().addAll(geneSequence);
+  }
 
-    private void handleKeyboard(Scene scene, final Node root) {
-        scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
-            @Override
-            public void handle(KeyEvent event) {
-                switch (event.getCode()) {
-                    case Z:
-                        camGroup2.t.setX(0.0);
-                        camGroup2.t.setY(0.0);
-                        cam.setTranslateZ(CAM_INIT_DISTANCE);
-                        camGroup1.ry.setAngle(CAM_INIT_Y_ANGLE);
-                        camGroup1.rx.setAngle(CAM_INIT_X_ANGLE);
-                        break;
-                    case X:
-                        axisGroup.setVisible(!axisGroup.isVisible());
-                        break;
-                    case V:
-                        geneSequence.setVisible(!geneSequence.isVisible());
-                        break;
-                }
-            }
-        });
-    }
+  @Override
+  public void start(Stage primaryStage) {
+    root.getChildren().add(world);
+    root.setDepthTest(DepthTest.ENABLE);
 
-    private void buildMolecule() {
+    buildCam();
+    buildAxes();
+    buildSequence();
 
-        final PhongMaterial redMaterial = new PhongMaterial();
-        redMaterial.setDiffuseColor(Color.DARKRED);
-        redMaterial.setSpecularColor(Color.RED);
+    Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+    Scene scene = new Scene(root, screenSize.getWidth(), screenSize.getHeight(), true);
+    scene.setFill(Color.web("343d46"));
+    handleMouse(scene, world);
 
-        final PhongMaterial whiteMaterial = new PhongMaterial();
-        whiteMaterial.setDiffuseColor(Color.WHITE);
-        whiteMaterial.setSpecularColor(Color.LIGHTBLUE);
+    primaryStage.setTitle("Polychrome (Alpha Version)");
+    primaryStage.setScene(scene);
+    primaryStage.show();
 
-        final PhongMaterial greyMaterial = new PhongMaterial();
-        greyMaterial.setDiffuseColor(Color.DARKGREY);
-        greyMaterial.setSpecularColor(Color.GREY);
+    scene.setCamera(mainCam);
+  }
 
-        pGroup moleculePGroup = new pGroup();
-        pGroup oxygenPGroup = new pGroup();
-        pGroup hydrogen1SidePGroup = new pGroup();
-        pGroup hydrogen1PGroup = new pGroup();
-        pGroup hydrogen2SidePGroup = new pGroup();
-        pGroup hydrogen2PGroup = new pGroup();
-
-        Sphere oxygenSphere = new Sphere(5);
-        oxygenSphere.setMaterial(redMaterial);
-
-        Sphere hydrogen1Sphere = new Sphere(5);
-        hydrogen1Sphere.setMaterial(whiteMaterial);
-        hydrogen1Sphere.setTranslateX(0.0);
-
-        Sphere hydrogen2Sphere = new Sphere(5);
-        hydrogen2Sphere.setMaterial(whiteMaterial);
-        hydrogen2Sphere.setTranslateZ(0.0);
-
-        Cylinder bond1Cylinder = new Cylinder(1, 20);
-        bond1Cylinder.setMaterial(greyMaterial);
-        bond1Cylinder.setTranslateX(10.0);
-        bond1Cylinder.setRotationAxis(Rotate.Z_AXIS);
-        bond1Cylinder.setRotate(90.0);
-
-        Cylinder bond2Cylinder = new Cylinder(1, 20);
-        bond2Cylinder.setMaterial(greyMaterial);
-        bond2Cylinder.setTranslateX(10.0);
-        bond2Cylinder.setRotationAxis(Rotate.Z_AXIS);
-        bond2Cylinder.setRotate(90.0);
-
-        moleculePGroup.getChildren().add(oxygenPGroup);
-        moleculePGroup.getChildren().add(hydrogen1SidePGroup);
-        moleculePGroup.getChildren().add(hydrogen2SidePGroup);
-        oxygenPGroup.getChildren().add(oxygenSphere);
-        hydrogen1SidePGroup.getChildren().add(hydrogen1PGroup);
-        hydrogen2SidePGroup.getChildren().add(hydrogen2PGroup);
-        hydrogen1PGroup.getChildren().add(hydrogen1Sphere);
-        hydrogen2PGroup.getChildren().add(hydrogen2Sphere);
-        hydrogen1SidePGroup.getChildren().add(bond1Cylinder);
-        hydrogen2SidePGroup.getChildren().add(bond2Cylinder);
-
-        hydrogen1PGroup.setTx(20.0);
-        hydrogen2PGroup.setTx(20.0);
-        hydrogen2SidePGroup.setRotateY(BASE_ANGLE);
-
-        geneSequence.getChildren().add(moleculePGroup);
-
-        world.getChildren().addAll(geneSequence);
-    }
-
-    @Override
-    public void start(Stage primaryStage) {
-        root.getChildren().add(world);
-        root.setDepthTest(DepthTest.ENABLE);
-
-        buildCam();
-        buildAxes();
-        buildMolecule();
-
-        Scene scene = new Scene(root, 1024, 768, true);
-        scene.setFill(Color.GREY);
-        handleKeyboard(scene, world);
-        handleMouse(scene, world);
-
-        primaryStage.setTitle("Molecule Sample Application");
-        primaryStage.setScene(scene);
-        primaryStage.show();
-
-        scene.setCamera(cam);
-    }
-
-    // Ignored in javafx applications
-    public static void main(String[] args) {
-        launch(args);
-    }
-
+  // ignored in javafx applications
+  public static void main(String[] args) {
+    launch(args);
+  }
 }

@@ -1,34 +1,42 @@
-# Polychrome
-Polychrome is a 3D Modeling video game that aims to leverage the concept of gamification and human intuition to predict human genomics structures.
+# PolyFold
+PolyFold is a crowdsourcing computer game for three dimensional (3D) protein folding. 
+The goal is to involve citizen scientists to play an interactive, intuitive, and visually 
+appealing computer game where they can make moves to change 3D conformations of proteins and
+get scored based on experimentally determined protein contact maps. Gamers strive to achieve 
+the best score by folding protein structures such that they agree with the contact map data. 
+Folding puzzles are available at different levels of complexities for beginner, intermediate, as 
+well as advanced users. No prior scientific background is needed to play PolyFold. It is 
+based entirely on human intuition and passion for solving puzzles with important implications 
+in science and medicine. Play PolyFold!
 
 ## How to Download, Compile, and Run the Source Code
 ### From Terminal:
 1. Run the following line is your desired directory:
 ```
-$ git clone https://github.com/andrewjmcgehee/Polychrome.git
+$ git clone https://github.com/andrewjmcgehee/PolyFold.git
 ```
 2. Run the following line to compile the code:
 ```
-$ javac Polychrome.java
+$ javac PolyFold.java
 ```
 3. Run the following line to run the application:
 ```
-$ java Polychrome
+$ java PolyFold
 ```
 
 
 ### From Github:
-1. Navigate to the [Polychrome](https://github.com/andrewjmcgehee/Polychrome) github page in your browser.
+1. Navigate to the [PolyFold](https://github.com/andrewjmcgehee/polyfold) github page in your browser.
 2. Click on the green **Clone or Download** button.
 3. Select either **Open in Desktop** to open the code in the Github Desktop Application or **Download ZIP** to download a simple .zip file.
 4. If you selected to download a .zip file, unzip it in your directory of choice.
 5. Run the following line to compile the code:
 ```
-$ javac Polychrome.java
+$ javac PolyFold.java
 ```
 6. Run the following line to run the application:
 ```
-$ java Polychrome
+$ java PolyFold
 ```
 
 ## Contributing to the Code Base
