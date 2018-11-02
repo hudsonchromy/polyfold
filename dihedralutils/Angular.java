@@ -1,12 +1,13 @@
-public class PosData {
-  int id;
-  double bondLen;
-  double tao;
-  double theta;
+package dihedralutils;
 
-  public PosData() {
+public class Angular {
+  public int id;
+  public double tao;
+  public double theta;
+  private final double BOND_LEN = 3.8;
+
+  public Angular() {
     this.id = 0;
-    this.bondLen = 3.7;
     this.tao = 0;
     this.theta = 0;
   }

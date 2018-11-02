@@ -1,0 +1,93 @@
+#backdrop {
+  -fx-background-color: #242930;
+  -fx-min-width: 1024;
+  -fx-min-height: 768;
+}
+
+.right {
+  -fx-padding: 6;
+  -fx-alignment: top-center;
+}
+
+#menubar {
+  -fx-background-color: #1c2025;
+  -fx-min-width: 1024;
+  -fx-min-height: 30;
+  -fx-max-height: 30;
+}
+
+#move-panel {
+  -fx-background-color: #4c5562;
+  -fx-background-radius: 4;
+  -fx-padding: 6;
+  -fx-spacing: 10;
+  -fx-alignment: center;
+}
+
+.move-pane {
+  -fx-background-color: rgba(0,0,0,0.3), rgba(255,255,255,0.5), #e9e9e9;
+  -fx-background-insets: 0 2 2 0, 2 0 0 2, 2;
+  -fx-background-radius: 4;
+  -fx-border-radius: 4;
+  -fx-padding: 6;
+  -fx-min-width: 200;
+  -fx-alignment: center;
+ }
+
+.slider-hbox {
+  -fx-alignment: center;
+}
+
+.slider {
+  -fx-min-width: 200;
+}
+
+.slider .track {
+  -fx-background-color: linear-gradient(black, gray);
+}
+
+#statusbar {
+  -fx-background-color: linear-gradient(#e9e9e9, #b6b6b6);
+  -fx-min-width: 1024;
+  -fx-min-height: 24;
+  -fx-max-height: 24;
+}
+
+.menu:hover, .menu:showing {
+  -fx-background-color: #2f343d;
+}
+
+.menu .label {
+  -fx-text-fill: white;
+}
+
+.menu-item:hover, .menu-item:focused {
+  -fx-background-color: #dddddd;
+}
+
+.menu-item .label {
+  -fx-text-fill: black;
+}
+
+#toolbar {
+  -fx-background-color: #4c5562;
+  -fx-padding: 6;
+  -fx-min-width: 1024;
+  -fx-min-height: 40;
+  -fx-max-height: 40;
+  -fx-spacing: 10;
+  -fx-alignment: center;
+}
+
+#toolbar .button {
+  -fx-background-color: rgba(0,0,0,0.3), rgba(255,255,255,0.5), #e9e9e9;
+  -fx-background-insets: 0 2 2 0, 2 0 0 2, 2;
+  -fx-background-radius: 4;
+  -fx-border-radius: 4;
+  -fx-text-fill: black;
+  -fx-content-display: center;
+  -fx-min-width: 80;
+  -fx-min-height: 30;
+  -fx-max-height: 30;
+}
+

@@ -1,28 +1,27 @@
-import java.util.*;
+package dihedralutils;
 
 public class DihedralUtility {
-  public static final double BOND_LENGTH = 3.8;
+  public static final double BOND_LEN = 3.8;
   public static final double PI = Math.PI;
 
-  public static PosData[] pdb2Pos(PDBData[] pdb) {
-    PosData[] pos = new PosData[pdb.length];
+  public static Angular[] pdb2Pos(Cartesian[] pdb) {
+    Angular[] pos = new Angular[pdb.length];
 
     // virtual N terminus
-    Point3D N = new Point3D();
-    N.x = pdb[0].ca.x - Math.cos(PI) * BOND_LENGTH;
-    N.y = pdb[0].ca.y - Math.sin(PI) * BOND_LENGTH;
+    Point N = new Point();
+    N.x = pdb[0].ca.x - Math.cos(PI) * BOND_LEN;
+    N.y = pdb[0].ca.y - Math.sin(PI) * BOND_LEN;
     N.z = pdb[0].ca.z;
     // virtual C terminus
-    Point3D C = new Point3D();
-    C.x = pdb[pdb.length-1].ca.x + Math.cos(PI) * BOND_LENGTH;
-    C.y = pdb[pdb.length-1].ca.y + Math.sin(PI) * BOND_LENGTH;
+    Point C = new Point();
+    C.x = pdb[pdb.length-1].ca.x + Math.cos(PI) * BOND_LEN;
+    C.y = pdb[pdb.length-1].ca.y + Math.sin(PI) * BOND_LEN;
     C.z = pdb[pdb.length-1].ca.z;
 
-    PosData posData;
+    Angular posData;
     for (int i = 0; i < pdb.length; i++) {
-      posData = new PosData();
+      posData = new Angular();
       posData.id = pdb[i].id;
-      posData.bondLen = BOND_LENGTH;
       // tao
       if (i == 0 || i == pdb.length-1 || i == pdb.length-2) {
         posData.tao = 2*PI;
@@ -42,14 +41,14 @@ public class DihedralUtility {
     return pos;
   }
 
-  public static PDBData[] pos2pdb(PosData[] pos) {
-    PDBData[] pdb = new PDBData[pos.length];
-    PDBData pdbData = new PDBData();
+  public static Cartesian[] pos2pdb(Angular[] pos) {
+    Cartesian[] pdb = new Cartesian[pos.length];
+    Cartesian pdbData = new Cartesian();
 
     // virtual N terminus
-    Point3D N = new Point3D();
-    N.x = 0.0 - Math.cos(PI) * BOND_LENGTH;
-    N.y = 0.0 - Math.sin(PI) * BOND_LENGTH;
+    Point N = new Point();
+    N.x = 0.0 - Math.cos(PI) * BOND_LEN;
+    N.y = 0.0 - Math.sin(PI) * BOND_LEN;
     N.z = 0.0;
     // first node at origin
     pdbData.id = pos[0].id;
@@ -58,30 +57,29 @@ public class DihedralUtility {
     pdbData.ca.z = 0.0;
     pdb[0] = pdbData;
     // second node at bond length along x axis
-    pdbData = new PDBData();
+    pdbData = new Cartesian();
     pdbData.id = pos[1].id;
-    pdbData.ca.x = pos[1].bondLen;
+    pdbData.ca.x = BOND_LEN;
     pdbData.ca.y = 0.0;
     pdbData.ca.z = 0.0;
     pdb[1] = pdbData;
     // third node at bond angle and bond length
-    pdbData = new PDBData();
+    pdbData = new Cartesian();
     pdbData.id = pos[2].id;
-    setCoordinate(N, pdb[0].ca, pdb[1].ca, pdbData.ca, pos[1].tao, pos[1].theta, pos[1].bondLen);
+    setCoordinate(N, pdb[0].ca, pdb[1].ca, pdbData.ca, pos[1].tao, pos[1].theta, BOND_LEN);
     pdb[2] = pdbData;
 
     for (int i = 3; i < pos.length; i++) {
-      pdbData = new PDBData();
+      pdbData = new Cartesian();
       pdbData.id = pos[i].id;
-      setCoordinate(pdb[i-3].ca, pdb[i-2].ca, pdb[i-1].ca, pdbData.ca, pos[i-2].tao, pos[i-1].theta, pos[i-1].bondLen);
+      setCoordinate(pdb[i-3].ca, pdb[i-2].ca, pdb[i-1].ca, pdbData.ca, pos[i-2].tao, pos[i-1].theta, BOND_LEN);
       pdb[i] = pdbData;
     }
     return pdb;
   }
 
 
-  // TODO Get clarity on this method
-  public static void setCoordinate(Point3D c0, Point3D c1, Point3D c2, Point3D c3, double alpha, double tao, double normw) {
+  public static void setCoordinate(Point c0, Point c1, Point c2, Point c3, double alpha, double tao, double normw) {
     double  u1, u2, u3, v1, v2, v3, norm;
     double pvuv1, pvuv2, pvuv3, pvvuv1, pvvuv2, pvvuv3;
     double nsa, nca, nct;
@@ -124,13 +122,13 @@ public class DihedralUtility {
     c3.z = u3 + c2.z;
   }
 
-  public static double getDistance(Point3D p1, Point3D p2) {
+  public static double getDistance(Point p1, Point p2) {
     return Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2) + Math.pow(p1.z - p2.z, 2);
   }
 
-  public static double getDihedral(Point3D p1, Point3D p2, Point3D p3, Point3D p4) {
-    Point3D q, r, s, t, u, v;
-    Point3D z = new Point3D();
+  public static double getDihedral(Point p1, Point p2, Point p3, Point p4) {
+    Point q, r, s, t, u, v;
+    Point z = new Point();
     z.x = 0.0;
     z.y = 0.0;
     z.z = 0.0;
@@ -149,31 +147,31 @@ public class DihedralUtility {
     return acc;
   }
 
-  public static Point3D getDifference(Point3D p1, Point3D p2) {
-    Point3D p = new Point3D();
+  public static Point getDifference(Point p1, Point p2) {
+    Point p = new Point();
     p.x = p2.x - p1.x;
     p.y = p2.y - p1.y;
     p.z = p2.z - p1.z;
     return p;
   }
 
-  public static Point3D getCrossProd(Point3D p1, Point3D p2) {
-    Point3D p = new Point3D();
+  public static Point getCrossProd(Point p1, Point p2) {
+    Point p = new Point();
     p.x = p1.y * p2.z - p1.z * p2.y;
     p.y = p1.z * p2.x - p1.x * p2.z;
     p.z = p1.x * p2.y - p1.y * p2.x;
     return p;
   }
 
-  public static double getDotProd(Point3D p1, Point3D p2) {
+  public static double getDotProd(Point p1, Point p2) {
     return (p1.x * p2.x + p1.y * p2.y + p1.z * p2.z);
   }
 
-  public static double getAngle(Point3D p1, Point3D p2, Point3D p3) {
+  public static double getAngle(Point p1, Point p2, Point p3) {
     double acc = 0.0;
     acc = (p2.x - p1.x) * (p2.x - p3.x) + (p2.y - p1.y) * (p2.y - p3.y) + (p2.z - p1.z) * (p2.z - p3.z);
-    double d1 = BOND_LENGTH;
-    double d2 = BOND_LENGTH;
+    double d1 = BOND_LEN;
+    double d2 = BOND_LEN;
 
     acc /= (d1 * d2);
     if (acc > 1.0) {

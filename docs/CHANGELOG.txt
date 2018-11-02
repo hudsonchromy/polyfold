@@ -1,5 +1,11 @@
 x.x.x
 -----
+- [Andrew McGehee] - Update directory / package structure for organizational purposes
+- [Andrew McGehee] - Add basic event handler functions for 3D section of UI
+- [Andrew McGehee] - Integrate 3D structure visualization into 2D UI
+- [Andrew McGehee] - Add initial UI placeholder elements (buttons, menu, status bar, etc.)
+- [Andrew McGehee] - Add planar angle and dihedral angle sliders
+- [Andrew McGehee] - Implement fxml and css approach for styling app UI
 - [Andrew McGehee] - Refactor code into more discrete classes, and remove unnecessary bulk
 - [Andrew McGehee] - Add function to build sequence with all thetas initially 110 and all taus -150
 - [Andrew McGehee] - Add score class to calculate mean squared error, sigmoid, and relu functions.
