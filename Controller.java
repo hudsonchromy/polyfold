@@ -16,7 +16,6 @@ public class Controller {
   final Group axes = new Group();
   final Group sequence = new Group();
   final PerspectiveCamera cam = new PerspectiveCamera(true);
-  final PerspectiveCamera cam2 = new PerspectiveCamera(true);
 
   // camera related fields
   final int VIEWPORT_SIZE = 800;
@@ -28,7 +27,6 @@ public class Controller {
   final double AXIS_LENGTH = 20;
   // note that camera move speed will vary with zoom level
   double cam_speed = Math.abs(CAM_INIT_DISTANCE / 1000.0);
-
 
   // color related fields
   final PhongMaterial red = new PhongMaterial(Color.web("ec5f66"));
@@ -81,7 +79,7 @@ public class Controller {
     yAxis.setMaterial(green);
     zAxis.setMaterial(blue);
     axes.getChildren().addAll(xAxis, yAxis, zAxis);
-    axes.setVisible(true);
+    axes.setVisible(false);
     world.getChildren().addAll(axes);
   }
 
