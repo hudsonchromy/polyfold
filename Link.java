@@ -13,13 +13,36 @@ public class Link extends Group {
 
   public Sphere node;
   public Cylinder rod = new Cylinder(0, 0);
+  // amino acid
+  public char aa;
+  // secondary structure
+  public char ss;
+  // id for referencing
+  public int id;
+  // used for rotating about a given axis
   public Rotate rotation;
 
+  // default constructor
   public Link(double x, double y, double z, boolean isEnd) {
     super();
     this.node = new Sphere(NODE_RADIUS);
     if (!isEnd) this.rod = initRod(ROD_RADIUS, ROD_HEIGHT);
+    // note the rotations axis will be modifies as needed during runtime
     this.rotation = initRotation(Rotate.Z_AXIS);
+
+    getChildren().addAll(node, rod);
+    getTransforms().add(rotation);
+    setCenter(x, y, z);
+  }
+
+  // initialization if amino acid type and secondary structure provided
+  public Link(double x, double y, double z, boolean isEnd, char aa, char ss) {
+    super();
+    this.node = new Sphere(NODE_RADIUS);
+    if (!isEnd) this.rod = initRod(ROD_RADIUS, ROD_HEIGHT);
+    this.rotation = initRotation(Rotate.Z_AXIS);
+    this.aa = aa;
+    this.ss = ss;
 
     getChildren().addAll(node, rod);
     getTransforms().add(rotation);
@@ -76,6 +99,6 @@ public class Link extends Group {
     double r = Math.hypot(x, z);
     double phi = Math.toDegrees(Math.atan2(r, y));
     rotation.setAxis(new Point3D(axis.x, axis.y, axis.z));
-    rotation.setAngle(phi - 180.0);
+    rotation.setAngle(180 + phi);
   }
 }

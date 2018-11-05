@@ -64,7 +64,8 @@
   </right>
 
   <bottom>
-    <Pane id="statusbar"/>
+    <VBox id="statusbar">
+    </VBox>
   </bottom>
 
   <center>
@@ -78,7 +79,7 @@
             <Menu text="File">
               <items>
                 <MenuItem text="New File"/>
-                <MenuItem text="Open..."/>
+                <MenuItem text="Open..." onAction="#openFile"/>
                 <MenuItem text="Save"/>
                 <MenuItem text="Save As..."/>
                 <MenuItem text="Close File"/>

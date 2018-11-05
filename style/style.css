@@ -1,5 +1,5 @@
 #backdrop {
-  -fx-background-color: #242930;
+  -fx-background-color: #313842;
   -fx-min-width: 1024;
   -fx-min-height: 768;
 }
@@ -10,14 +10,14 @@
 }
 
 #menubar {
-  -fx-background-color: #1c2025;
+  -fx-background-color: #000000;
   -fx-min-width: 1024;
   -fx-min-height: 30;
   -fx-max-height: 30;
 }
 
 #move-panel {
-  -fx-background-color: #4c5562;
+  -fx-background-color: #5b6678;
   -fx-background-radius: 4;
   -fx-padding: 6;
   -fx-spacing: 10;
@@ -43,7 +43,7 @@
 }
 
 .slider .track {
-  -fx-background-color: linear-gradient(black, gray);
+  -fx-background-color: linear-gradient(#4b4b4b, #bdbdbd);
 }
 
 #statusbar {
@@ -90,4 +90,3 @@
   -fx-min-height: 30;
   -fx-max-height: 30;
 }
-

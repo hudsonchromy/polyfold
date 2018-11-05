@@ -1,4 +1,4 @@
-import javafx.event.EventHandler;
+import javafx.event.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
@@ -7,7 +7,11 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.*;
 import javafx.scene.shape.*;
 import javafx.scene.transform.*;
+import javafx.stage.*;
+import javafx.stage.FileChooser.*;
 import javafx.fxml.FXML;
+import java.util.*;
+import java.io.*;
 
 import dihedralutils.*;
 
@@ -21,9 +25,9 @@ public class Controller {
   final int VIEWPORT_SIZE = 800;
   final double CAM_INIT_DISTANCE = 100;
   final double CAM_NEAR_CLIP = 0.1;
-  final double CAM_FAR_CLIP = 1000;
+  final double CAM_FAR_CLIP = 2000;
   final double CAM_MIN_ZOOM = 30;
-  final double CAM_MAX_ZOOM = 500;
+  final double CAM_MAX_ZOOM = 1000;
   final double AXIS_LENGTH = 20;
   // note that camera move speed will vary with zoom level
   double cam_speed = Math.abs(CAM_INIT_DISTANCE / 1000.0);
@@ -38,11 +42,15 @@ public class Controller {
   final PhongMaterial grey = new PhongMaterial(Color.web("d8dee9"));
   final PhongMaterial white = new PhongMaterial(Color.WHITE);
 
+  // node related fields;
+  private Link[] links;
+  private Angular[] angles;
+  private Cartesian[] carts;
 
   // the 2D UI
   @FXML private BorderPane app;
 
-  @FXML
+  // initializes subscene for 3D graphics
   private SubScene initView(Group group) {
     SubScene view = new SubScene(
       group,
@@ -59,18 +67,18 @@ public class Controller {
     cam.setRotationAxis(Rotate.X_AXIS);
     cam.setRotate(180);
     view.setCamera(cam);
-    view.setFill(Color.web("111111"));
+    view.setFill(Color.web("1c2025"));
     return view;
   }
 
-  @FXML
+  // keeps the 3D subscene dimensions the same as its parent pane
   public void sizeView(SubScene scene) {
     Pane parent = (Pane) scene.getParent();
     scene.widthProperty().bind(parent.widthProperty());
     scene.heightProperty().bind(parent.heightProperty());
   }
 
-  @FXML
+  // builds 3D axes for aiding orientation
   public void buildAxes() {
     final Box xAxis = new Box(AXIS_LENGTH, 0.1, 0.1);
     final Box yAxis = new Box(0.1, AXIS_LENGTH, 0.1);
@@ -83,52 +91,124 @@ public class Controller {
     world.getChildren().addAll(axes);
   }
 
-  @FXML
-  public Link[] buildLinks(int n) {
-    Link[] links = new Link[n];
-    Angular[] pos = new Angular[n];
+  public void setCameraZoom() {
+    // cam field of view is 30 degrees - pi / 6
+    double tanTheta = Math.tan(Math.PI / 6.0);
+    // keep track of max zoom level needed to see all nodes
+    double maxZoom, leftMost, rightMost, upMost, downMost;
+    maxZoom = -1;
+    leftMost = 1000000;
+    rightMost = -1000000;
+    upMost = -1000000;
+    downMost = 1000000;
+
+    for (Link l : links) {
+      // get position of sphere
+      double x, y, xZoom, yZoom;
+      x = l.getTranslateX();
+      y = l.getTranslateY();
+      leftMost = Math.min(leftMost, x);
+      rightMost = Math.max(rightMost, x);
+      upMost = Math.max(upMost, y);
+      downMost = Math.min(downMost, y);
+      xZoom = Math.abs(x / tanTheta) + 100;
+      yZoom = Math.abs(y / tanTheta) + 100;
+      maxZoom = Math.max(maxZoom, xZoom);
+      maxZoom = Math.max(maxZoom, yZoom);
+    }
+    cam.setTranslateX((leftMost + rightMost) / 2.0);
+    cam.setTranslateY((upMost + downMost) / 2.0);
+    cam.setTranslateZ(maxZoom);
+  }
+
+  // maps a secondary structure character to its theta angles
+  HashMap<Character, Integer> secondaryTheta = new HashMap<Character, Integer>();
+  // maps a secondary structure character to its tao angle
+  HashMap<Character, Integer> secondaryTao = new HashMap<Character, Integer>();
+  // initialize maps for secondary structure to angle
+  public void initSecondary() {
+    secondaryTheta.put('H', 89);
+    secondaryTheta.put('E', 124);
+    secondaryTheta.put('C', 110);
+    secondaryTao.put('H', 50);
+    secondaryTao.put('E', -170);
+    secondaryTao.put('C', -150);
+  }
+
+  // helper function for building the sequence
+  public Link[] buildLinks(String content, String extension) {
+    int n = (content != null) ? content.length() : 0;
+    links = new Link[n];
+    angles = new Angular[n];
+    // handle each character in file
     for (int i = 0; i < n; i++) {
-      Angular p = new Angular();
-      p.id = i;
+      Angular a = new Angular();
+      a.id = i;
+      // first and last node have no theta
       if (i == 0 || i == n-1) {
-        p.theta = 2 * Math.PI;
+        a.theta = 2 * Math.PI;
       }
+      else if (content != null && extension.equals(".ss")) {
+        a.theta = secondaryTheta.get(content.charAt(i)) * Math.PI / 180.0;
+      }
+      // no string provided
       else {
-        p.theta = 110.0 * Math.PI / 180.0;
+        a.theta = 110.0 * Math.PI / 180.0;
       }
+      // first, second to last, and last nodes have no tao
       if (i == 0 || i == n-1 || i == n-2) {
-        p.tao = 2 * Math.PI;
+        a.tao = 2 * Math.PI;
       }
+      else if (content != null && extension.equals(".ss")) {
+        a.tao = secondaryTao.get(content.charAt(i)) * Math.PI / 180.0;
+      }
+      // no string provided
       else {
-        p.tao = -150.0 * Math.PI / 180.0;
+        a.tao = -150.0 * Math.PI / 180.0;
       }
-      pos[i] = p;
+      angles[i] = a;
     }
 
-    Cartesian[] pdb = DihedralUtility.pos2pdb(pos);
+    // convert to cartesion points
+    carts = DihedralUtility.angles2Carts(angles);
     boolean isEndNode = false;
     for (int i = 0; i < n; i++) {
-      Cartesian p = pdb[i];
+      Cartesian c = carts[i];
       if (i == n-1) isEndNode = true;
-      Link l = new Link(p.ca.x, p.ca.y, p.ca.z, isEndNode);
+      Link l = new Link(c.pos.x, c.pos.y, c.pos.z, isEndNode);
+      l.id = i;
       links[i] = l;
     }
+    // connect rods to spheres
     for (int i = 0; i < n-1; i++) {
       links[i].rotateRod(links[i+1]);
     }
     return links;
   }
 
-  @FXML
-  public void buildSequence() {
-    Link[] links = buildLinks(20);
+  // add all the links
+  public void buildSequence(File f) throws IOException {
+    sequence.getChildren().clear();
+    world.getChildren().clear();
+    String extension = getExtension(f);
+    String content = new Scanner(f).useDelimiter("\\A").next();
+    // build links
+    Link[] links = buildLinks(content, extension);
     for (Link l : links) {
       l.node.setMaterial(purple);
       sequence.getChildren().add(l);
     }
-    // REMOVE LATER
-    // sequence.setRotationAxis(Rotate.Y_AXIS);
+    sequence.setRotationAxis(Rotate.Y_AXIS);
     world.getChildren().addAll(sequence);
+    setCameraZoom();
+  }
+
+  // helper function to get file extension
+  public String getExtension(File f) {
+    String name = f.getName();
+    int index = name.lastIndexOf(".");
+    if (index == -1) return null;
+    return name.substring(index);
   }
 
   // UI
@@ -141,27 +221,47 @@ public class Controller {
 
   private final double PI = Math.PI;
 
-  @FXML
-  public void initSliders() {
+  // disables sliders and puts the selector halfway
+  public void resetSliders() {
     thetaSlider.setMin(0);
     thetaSlider.setMax(PI);
     thetaSlider.setValue(PI/2.0);
+    thetaSlider.setDisable(true);
 
     taoSlider.setMin(-PI);
     taoSlider.setMax(PI);
     taoSlider.setValue(0);
+    taoSlider.setDisable(true);
   }
 
-  @FXML
+  // updates a slider with the angle info of a give node
+  public void updateSliders(double theta, double tao, int id) {
+    if (id == 0 || id == angles.length-1) {
+      resetSliders();
+      return;
+    }
+    if (id == angles.length-2) {
+      thetaSlider.setDisable(false);
+      thetaSlider.setValue(theta);
+      return;
+    }
+    thetaSlider.setDisable(false);
+    taoSlider.setDisable(false);
+    thetaSlider.setValue(theta);
+    taoSlider.setValue(tao);
+  }
+
+  // gets png file assets and sets their size
   public void initPNGs() {
-    zeroPNG.setFitWidth(50);
-    zeroPNG.setFitHeight(50);
-    piPNG1.setFitWidth(50);
-    piPNG1.setFitHeight(50);
-    negPiPNG.setFitWidth(50);
-    negPiPNG.setFitHeight(50);
-    piPNG2.setFitWidth(50);
-    piPNG2.setFitHeight(50);
+    // zero png looks better slightly smaller
+    zeroPNG.setFitWidth(35);
+    zeroPNG.setFitHeight(35);
+    piPNG1.setFitWidth(40);
+    piPNG1.setFitHeight(40);
+    negPiPNG.setFitWidth(40);
+    negPiPNG.setFitHeight(40);
+    piPNG2.setFitWidth(40);
+    piPNG2.setFitHeight(40);
   }
 
   // mouse movement fields
@@ -176,7 +276,6 @@ public class Controller {
   Sphere selectedNode;
   PhongMaterial selectedMaterial;
 
-  @FXML
   private void handle3DMouse(SubScene scene, final Node root) {
     scene.setOnMousePressed(new EventHandler<MouseEvent> () {
       @Override
@@ -191,10 +290,13 @@ public class Controller {
           if (selectedNode != null) {
             selectedNode.setMaterial(selectedMaterial);
           }
-          // set color of selection if not null
+          // set color of selection
           selectedNode = (Sphere) result.getIntersectedNode();
           selectedMaterial = (PhongMaterial) selectedNode.getMaterial();
           selectedNode.setMaterial(green);
+          Link link = (Link) selectedNode.getParent();
+          int id = link.id;
+          updateSliders(angles[id].theta, angles[id].tao, id);
           return;
         }
         if (selectedNode != null) {
@@ -202,6 +304,7 @@ public class Controller {
         }
         selectedNode = null;
         selectedMaterial = null;
+        resetSliders();
       }
     });
 
@@ -215,15 +318,15 @@ public class Controller {
         mouseYf = e.getSceneY();
         mouseDeltaX = mouseXf - mouseX0;
         mouseDeltaY = mouseYf - mouseY0;
-
+        // left click moves the camera
         if (e.isPrimaryButtonDown()) {
           cam.setTranslateX(cam.getTranslateX() - mouseDeltaX*cam_speed);
           cam.setTranslateY(cam.getTranslateY() + mouseDeltaY*cam_speed);
         }
-        // REMOVE LATER
-        // if (e.isSecondaryButtonDown()) {
-        //   sequence.setRotate(sequence.getRotate() + mouseDeltaX);
-        // }
+        // right click rotates entire sequence around y axis
+        if (e.isSecondaryButtonDown()) {
+          sequence.setRotate(sequence.getRotate() + mouseDeltaX);
+        }
       }
     });
 
@@ -231,12 +334,13 @@ public class Controller {
       @Override
       public void handle(ScrollEvent e) {
         double zoom = cam.getTranslateZ() - e.getDeltaY();
-
+        // scrolling zooms the camera
         if (!e.isInertia()) {
           if (zoom <= CAM_MIN_ZOOM) {
             cam.setTranslateZ(CAM_MIN_ZOOM);
             cam_speed = Math.abs(cam.getTranslateZ() / 1000.0);
           }
+          // check zoom bounds
           else if (zoom >= CAM_MAX_ZOOM) {
             cam.setTranslateZ(CAM_MAX_ZOOM);
             cam_speed = Math.abs(cam.getTranslateZ() / 1000.0);
@@ -250,12 +354,29 @@ public class Controller {
     });
   }
 
+  // open an amino acid or secondary structure file
   @FXML
-  public void initialize() {
-    buildAxes();
-    buildSequence();
-    initSliders();
+  private void openFile(ActionEvent e) throws IOException {
+    FileChooser fileModal = new FileChooser();
+    fileModal.setTitle("Open Resource File");
+    fileModal.getExtensionFilters().addAll(
+      new ExtensionFilter("Amino Acid (.aa)", "*.aa"),
+      new ExtensionFilter("Secondary Structure (.ss)", "*.ss"),
+      new ExtensionFilter("Contact Map (.rr)", "*.rr"),
+      new ExtensionFilter("Protein Data Bank (.pdb)", "*.pdb")
+    );
+    File f = fileModal.showOpenDialog(app.getScene().getWindow());
+    if (f != null) {
+      buildSequence(f);
+    }
+  }
+
+  public void initialize() throws IOException {
+    // NOT NEEDED - FOR INTERNAL USE
+    // buildAxes();
     initPNGs();
+    initSecondary();
+    resetSliders();
     SubScene view = initView(world);
     Pane viewport = new Pane(view);
     sizeView(view);
