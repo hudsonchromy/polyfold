@@ -4,46 +4,46 @@ public class DihedralUtility {
   public static final double BOND_LEN = 3.8;
   public static final double PI = Math.PI;
 
-  public static Angular[] pdb2Pos(Cartesian[] pdb) {
-    Angular[] pos = new Angular[pdb.length];
+  public static Angular[] carts2Angles(Cartesian[] carts) {
+    Angular[] angles = new Angular[carts.length];
 
     // virtual N terminus
     Point N = new Point();
-    N.x = pdb[0].ca.x - Math.cos(PI) * BOND_LEN;
-    N.y = pdb[0].ca.y - Math.sin(PI) * BOND_LEN;
-    N.z = pdb[0].ca.z;
+    N.x = carts[0].pos.x - Math.cos(PI) * BOND_LEN;
+    N.y = carts[0].pos.y - Math.sin(PI) * BOND_LEN;
+    N.z = carts[0].pos.z;
     // virtual C terminus
     Point C = new Point();
-    C.x = pdb[pdb.length-1].ca.x + Math.cos(PI) * BOND_LEN;
-    C.y = pdb[pdb.length-1].ca.y + Math.sin(PI) * BOND_LEN;
-    C.z = pdb[pdb.length-1].ca.z;
+    C.x = carts[carts.length-1].pos.x + Math.cos(PI) * BOND_LEN;
+    C.y = carts[carts.length-1].pos.y + Math.sin(PI) * BOND_LEN;
+    C.z = carts[carts.length-1].pos.z;
 
-    Angular posData;
-    for (int i = 0; i < pdb.length; i++) {
-      posData = new Angular();
-      posData.id = pdb[i].id;
+    Angular a;
+    for (int i = 0; i < carts.length; i++) {
+      a = new Angular();
+      a.id = carts[i].id;
       // tao
-      if (i == 0 || i == pdb.length-1 || i == pdb.length-2) {
-        posData.tao = 2*PI;
+      if (i == 0 || i == carts.length-1 || i == carts.length-2) {
+        a.tao = 2*PI;
       }
       else {
-        posData.tao = getDihedral(pdb[i-1].ca, pdb[i].ca, pdb[i+1].ca, pdb[i+2].ca);
+        a.tao = getDihedral(carts[i-1].pos, carts[i].pos, carts[i+1].pos, carts[i+2].pos);
       }
       // theta
-      if (i == 0 || i == pdb.length-1) {
-        posData.theta = 2*PI;
+      if (i == 0 || i == carts.length-1) {
+        a.theta = 2*PI;
       }
       else {
-        posData.theta = getAngle(pdb[i-1].ca, pdb[i].ca, pdb[i+1].ca);
+        a.theta = getAngle(carts[i-1].pos, carts[i].pos, carts[i+1].pos);
       }
-      pos[i] = posData;
+      angles[i] = a;
     }
-    return pos;
+    return angles;
   }
 
-  public static Cartesian[] pos2pdb(Angular[] pos) {
-    Cartesian[] pdb = new Cartesian[pos.length];
-    Cartesian pdbData = new Cartesian();
+  public static Cartesian[] angles2Carts(Angular[] angles) {
+    Cartesian[] carts = new Cartesian[angles.length];
+    Cartesian c = new Cartesian();
 
     // virtual N terminus
     Point N = new Point();
@@ -51,31 +51,31 @@ public class DihedralUtility {
     N.y = 0.0 - Math.sin(PI) * BOND_LEN;
     N.z = 0.0;
     // first node at origin
-    pdbData.id = pos[0].id;
-    pdbData.ca.x = 0.0;
-    pdbData.ca.y = 0.0;
-    pdbData.ca.z = 0.0;
-    pdb[0] = pdbData;
+    c.id = angles[0].id;
+    c.pos.x = 0.0;
+    c.pos.y = 0.0;
+    c.pos.z = 0.0;
+    carts[0] = c;
     // second node at bond length along x axis
-    pdbData = new Cartesian();
-    pdbData.id = pos[1].id;
-    pdbData.ca.x = BOND_LEN;
-    pdbData.ca.y = 0.0;
-    pdbData.ca.z = 0.0;
-    pdb[1] = pdbData;
+    c = new Cartesian();
+    c.id = angles[1].id;
+    c.pos.x = BOND_LEN;
+    c.pos.y = 0.0;
+    c.pos.z = 0.0;
+    carts[1] = c;
     // third node at bond angle and bond length
-    pdbData = new Cartesian();
-    pdbData.id = pos[2].id;
-    setCoordinate(N, pdb[0].ca, pdb[1].ca, pdbData.ca, pos[1].tao, pos[1].theta, BOND_LEN);
-    pdb[2] = pdbData;
+    c = new Cartesian();
+    c.id = angles[2].id;
+    setCoordinate(N, carts[0].pos, carts[1].pos, c.pos, angles[1].tao, angles[1].theta, BOND_LEN);
+    carts[2] = c;
 
-    for (int i = 3; i < pos.length; i++) {
-      pdbData = new Cartesian();
-      pdbData.id = pos[i].id;
-      setCoordinate(pdb[i-3].ca, pdb[i-2].ca, pdb[i-1].ca, pdbData.ca, pos[i-2].tao, pos[i-1].theta, BOND_LEN);
-      pdb[i] = pdbData;
+    for (int i = 3; i < angles.length; i++) {
+      c = new Cartesian();
+      c.id = angles[i].id;
+      setCoordinate(carts[i-3].pos, carts[i-2].pos, carts[i-1].pos, c.pos, angles[i-2].tao, angles[i-1].theta, BOND_LEN);
+      carts[i] = c;
     }
-    return pdb;
+    return carts;
   }
 
 

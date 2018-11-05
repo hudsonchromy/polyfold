@@ -2,15 +2,15 @@ package dihedralutils;
 
 public class Cartesian {
   public int id;
-  public Point ca;
+  public Point pos;
 
   public Cartesian() {
     this.id = 0;
-    this.ca = new Point();
+    this.pos = new Point();
   }
 
   @Override
   public String toString() {
-    return this.ca.toString();
+    return this.pos.toString();
   }
 }
