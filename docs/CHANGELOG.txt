@@ -1,5 +1,11 @@
 x.x.x
 -----
+- [Andrew McGehee] - Add reading secondary structure and amino acid from file
+- [Andrew McGehee] - Add file opening modal
+- [Andrew McGehee] - Add slider updates angle on click
+- [Andrew McGehee] - Add rotation of entire sequence feature
+- [Andrew McGehee] - Update directory / package structure for organizational purposes
+- [Andrew McGehee] - Add basic event handler functions for 3D section of UI
 - [Andrew McGehee] - Integrate 3D structure visualization into 2D UI
 - [Andrew McGehee] - Add initial UI placeholder elements (buttons, menu, status bar, etc.)
 - [Andrew McGehee] - Add planar angle and dihedral angle sliders

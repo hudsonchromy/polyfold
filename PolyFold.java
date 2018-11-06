@@ -10,7 +10,7 @@ public class PolyFold extends Application {
   @Override
   public void start(Stage stage) throws IOException {
     // loads xml
-    FXMLLoader loader = new FXMLLoader(getClass().getResource("polyfold.fxml"));
+    FXMLLoader loader = new FXMLLoader(getClass().getResource("style/polyfold.fxml"));
 
     // event controller
     Controller c = new Controller();
@@ -21,7 +21,7 @@ public class PolyFold extends Application {
     Scene scene = new Scene(root, 1024, 768, true);
 
     // apply style
-    scene.getStylesheets().add("style.css");
+    scene.getStylesheets().add("style/style.css");
 
     // build stage
     stage.setTitle("PolyFold (Alpha Version)");

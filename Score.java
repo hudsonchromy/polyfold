@@ -1,3 +1,5 @@
+package polyfold;
+
 public class Score {
   public static double meanSquaredError(double[][] a, double[][] b) {
     double error = 0;
