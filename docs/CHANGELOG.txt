@@ -1,5 +1,9 @@
 x.x.x
 -----
+- [Andrew McGehee] - Add keyboard shortcuts for open file and undo
+- [Andrew McGehee] - Add undo feature
+- [Andrew McGehee] - Add epsilon error range for floating point angles
+- [Andrew McGehee] - Add auto-zoom feature
 - [Andrew McGehee] - Add reading secondary structure and amino acid from file
 - [Andrew McGehee] - Add file opening modal
 - [Andrew McGehee] - Add slider updates angle on click
