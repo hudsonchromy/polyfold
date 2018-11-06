@@ -65,6 +65,10 @@
 
   <bottom>
     <VBox id="statusbar">
+      <children>
+        <Text fx:id="aa" text=""/>
+        <Text fx:id="ss" text=""/>
+      </children>
     </VBox>
   </bottom>
 
@@ -78,16 +82,13 @@
           <menus>
             <Menu text="File">
               <items>
-                <MenuItem text="New File"/>
-                <MenuItem text="Open..." onAction="#openFile"/>
-                <MenuItem text="Save"/>
+                <MenuItem text="Open..." onAction="#openFile" accelerator="Shortcut+o"/>
                 <MenuItem text="Save As..."/>
-                <MenuItem text="Close File"/>
               </items>
             </Menu>
             <Menu text="Edit">
               <items>
-                <MenuItem text="Undo"/>
+                <MenuItem text="Undo" onAction="#undo" accelerator="Shortcut+z"/>
                 <MenuItem text="Redo"/>
               </items>
             </Menu>
@@ -113,7 +114,7 @@
         </MenuBar>
         <HBox id="toolbar">
           <children>
-            <Button text="Button"/>
+            <ToggleButton text="Auto-Zoom" onAction="#toggleAutoZoom"/>
             <Button text="Button"/>
             <Button text="Button"/>
           </children>

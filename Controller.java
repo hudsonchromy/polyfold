@@ -1,3 +1,4 @@
+import javafx.geometry.*;
 import javafx.event.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -16,10 +17,13 @@ import java.io.*;
 import dihedralutils.*;
 
 public class Controller {
+  // global fields
   final Group world = new Group();
   final Group axes = new Group();
   final Group sequence = new Group();
   final PerspectiveCamera cam = new PerspectiveCamera(true);
+  final int INF = 1000000000;
+  final double EPS = 0.0000001;
 
   // camera related fields
   final int VIEWPORT_SIZE = 800;
@@ -31,6 +35,7 @@ public class Controller {
   final double AXIS_LENGTH = 20;
   // note that camera move speed will vary with zoom level
   double cam_speed = Math.abs(CAM_INIT_DISTANCE / 1000.0);
+  boolean isAutoZoom = false;
 
   // color related fields
   final PhongMaterial red = new PhongMaterial(Color.web("ec5f66"));
@@ -78,6 +83,12 @@ public class Controller {
     scene.heightProperty().bind(parent.heightProperty());
   }
 
+  @FXML
+  public void toggleAutoZoom() {
+    isAutoZoom = !isAutoZoom;
+    if (isAutoZoom) setCameraZoom();
+  }
+
   // builds 3D axes for aiding orientation
   public void buildAxes() {
     final Box xAxis = new Box(AXIS_LENGTH, 0.1, 0.1);
@@ -92,32 +103,35 @@ public class Controller {
   }
 
   public void setCameraZoom() {
+    if (links == null) return;
     // cam field of view is 30 degrees - pi / 6
     double tanTheta = Math.tan(Math.PI / 6.0);
     // keep track of max zoom level needed to see all nodes
-    double maxZoom, leftMost, rightMost, upMost, downMost;
+    double maxZoom, maxLeft, maxRight, maxUp, maxDown;
     maxZoom = -1;
-    leftMost = 1000000;
-    rightMost = -1000000;
-    upMost = -1000000;
-    downMost = 1000000;
+    // initially set with very high values in opposite direction
+    maxLeft = INF;
+    maxRight = -INF;
+    maxUp = -INF;
+    maxDown = INF;
 
+    // finds max left, max right, max up, and max down for calculate camera field of view
     for (Link l : links) {
       // get position of sphere
       double x, y, xZoom, yZoom;
       x = l.getTranslateX();
       y = l.getTranslateY();
-      leftMost = Math.min(leftMost, x);
-      rightMost = Math.max(rightMost, x);
-      upMost = Math.max(upMost, y);
-      downMost = Math.min(downMost, y);
+      maxLeft = Math.min(maxLeft, x);
+      maxRight = Math.max(maxRight, x);
+      maxUp = Math.max(maxUp, y);
+      maxDown = Math.min(maxDown, y);
       xZoom = Math.abs(x / tanTheta) + 100;
       yZoom = Math.abs(y / tanTheta) + 100;
       maxZoom = Math.max(maxZoom, xZoom);
       maxZoom = Math.max(maxZoom, yZoom);
     }
-    cam.setTranslateX((leftMost + rightMost) / 2.0);
-    cam.setTranslateY((upMost + downMost) / 2.0);
+    cam.setTranslateX((maxLeft + maxRight) / 2.0);
+    cam.setTranslateY((maxUp + maxDown) / 2.0);
     cam.setTranslateZ(maxZoom);
   }
 
@@ -126,7 +140,7 @@ public class Controller {
   // maps a secondary structure character to its tao angle
   HashMap<Character, Integer> secondaryTao = new HashMap<Character, Integer>();
   // initialize maps for secondary structure to angle
-  public void initSecondary() {
+  public void initSecondaryMaps() {
     secondaryTheta.put('H', 89);
     secondaryTheta.put('E', 124);
     secondaryTheta.put('C', 110);
@@ -135,12 +149,10 @@ public class Controller {
     secondaryTao.put('C', -150);
   }
 
-  // helper function for building the sequence
-  public Link[] buildLinks(String content, String extension) {
+  // helper function for building links - gets all angles
+  public void setAngularArray(String content, String extension) {
     int n = (content != null) ? content.length() : 0;
-    links = new Link[n];
     angles = new Angular[n];
-    // handle each character in file
     for (int i = 0; i < n; i++) {
       Angular a = new Angular();
       a.id = i;
@@ -168,38 +180,64 @@ public class Controller {
       }
       angles[i] = a;
     }
+  }
 
-    // convert to cartesion points
-    carts = DihedralUtility.angles2Carts(angles);
+  public void setLinkArray() {
+    links = new Link[carts.length];
     boolean isEndNode = false;
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < carts.length; i++) {
       Cartesian c = carts[i];
-      if (i == n-1) isEndNode = true;
+      if (i == carts.length-1) isEndNode = true;
       Link l = new Link(c.pos.x, c.pos.y, c.pos.z, isEndNode);
       l.id = i;
+      l.node.setMaterial(red);
       links[i] = l;
     }
-    // connect rods to spheres
-    for (int i = 0; i < n-1; i++) {
+  }
+
+  public void connectLinkRods() {
+    for (int i = 0; i < links.length-1; i++) {
       links[i].rotateRod(links[i+1]);
     }
+  }
+
+  // helper function for building the sequence
+  public Link[] buildLinks(String content, String extension) {
+    int n = (content != null) ? content.length() : 0;
+    setAngularArray(content, extension);
+    // convert to cartesion points
+    carts = DihedralUtility.angles2Carts(angles);
+    setLinkArray();
+    connectLinkRods();
     return links;
   }
 
-  // add all the links
-  public void buildSequence(File f) throws IOException {
+  public Link[] buildLinks(int selectionIndex) {
+    int n = angles.length;
+    carts = DihedralUtility.angles2Carts(angles);
+    setLinkArray();
+    connectLinkRods();
+    selectedNode = links[selectionIndex].node;
+    selectedNode.setMaterial(green);
+    return links;
+  }
+
+  public void buildSequence() {
     sequence.getChildren().clear();
     world.getChildren().clear();
+    sequence.setRotationAxis(Rotate.Y_AXIS);
+    sequence.getChildren().addAll(links);
+    world.getChildren().add(sequence);
+    if (isAutoZoom) setCameraZoom();
+  }
+
+  // add all the links
+  public void initSequence(File f) throws IOException {
     String extension = getExtension(f);
     String content = new Scanner(f).useDelimiter("\\A").next();
     // build links
-    Link[] links = buildLinks(content, extension);
-    for (Link l : links) {
-      l.node.setMaterial(purple);
-      sequence.getChildren().add(l);
-    }
-    sequence.setRotationAxis(Rotate.Y_AXIS);
-    world.getChildren().addAll(sequence);
+    links = buildLinks(content, extension);
+    buildSequence();
     setCameraZoom();
   }
 
@@ -223,19 +261,22 @@ public class Controller {
 
   // disables sliders and puts the selector halfway
   public void resetSliders() {
-    thetaSlider.setMin(0);
-    thetaSlider.setMax(PI);
+    // epsilon defined to allow for small precision error in floating point
+    thetaSlider.setMin(0 + EPS);
+    thetaSlider.setMax(PI - EPS);
     thetaSlider.setValue(PI/2.0);
     thetaSlider.setDisable(true);
-
-    taoSlider.setMin(-PI);
-    taoSlider.setMax(PI);
+    taoSlider.setMin(-PI + EPS);
+    taoSlider.setMax(PI - EPS);
     taoSlider.setValue(0);
     taoSlider.setDisable(true);
   }
 
   // updates a slider with the angle info of a give node
-  public void updateSliders(double theta, double tao, int id) {
+  public void updateSliders(Link l) {
+    int id = l.id;
+    double theta = angles[id].theta;
+    double tao = angles[id].tao;
     if (id == 0 || id == angles.length-1) {
       resetSliders();
       return;
@@ -274,7 +315,22 @@ public class Controller {
 
   // node selection fields
   Sphere selectedNode;
-  PhongMaterial selectedMaterial;
+
+  private void select(Sphere s) {
+    if (s == null) return;
+    deselect(selectedNode);
+    selectedNode = s;
+    s.setMaterial(green);
+    Link l = (Link) s.getParent();
+    updateSliders(l);
+  }
+
+  private void deselect(Sphere s) {
+    if (s == null) return;
+    selectedNode = null;
+    s.setMaterial(red);
+    resetSliders();
+  }
 
   private void handle3DMouse(SubScene scene, final Node root) {
     scene.setOnMousePressed(new EventHandler<MouseEvent> () {
@@ -283,28 +339,16 @@ public class Controller {
         // update mouse position
         mouseXf = e.getSceneX();
         mouseYf = e.getSceneY();
-        // update selection
-        PickResult result = e.getPickResult();
-        if (result.getIntersectedNode() instanceof Sphere) {
-          // reset color of previous node
-          if (selectedNode != null) {
-            selectedNode.setMaterial(selectedMaterial);
+        if (e.isPrimaryButtonDown()) {
+          // update selection
+          PickResult result = e.getPickResult();
+          if (result.getIntersectedNode() instanceof Sphere) {
+            select((Sphere) result.getIntersectedNode());
           }
-          // set color of selection
-          selectedNode = (Sphere) result.getIntersectedNode();
-          selectedMaterial = (PhongMaterial) selectedNode.getMaterial();
-          selectedNode.setMaterial(green);
-          Link link = (Link) selectedNode.getParent();
-          int id = link.id;
-          updateSliders(angles[id].theta, angles[id].tao, id);
-          return;
+          else {
+            deselect(selectedNode);
+          }
         }
-        if (selectedNode != null) {
-          selectedNode.setMaterial(selectedMaterial);
-        }
-        selectedNode = null;
-        selectedMaterial = null;
-        resetSliders();
       }
     });
 
@@ -333,6 +377,7 @@ public class Controller {
     scene.setOnScroll(new EventHandler<ScrollEvent>() {
       @Override
       public void handle(ScrollEvent e) {
+        if (isAutoZoom) return;
         double zoom = cam.getTranslateZ() - e.getDeltaY();
         // scrolling zooms the camera
         if (!e.isInertia()) {
@@ -354,33 +399,137 @@ public class Controller {
     });
   }
 
+  public void handleSliders() {
+    // track slider value for theta
+    thetaSlider.valueProperty().addListener((observable, oldVal, newVal) -> {
+      if (selectedNode != null) {
+        Link selectedLink = (Link) selectedNode.getParent();
+        int index = selectedLink.id;
+        double start, end;
+        start = oldVal.doubleValue();
+        end = newVal.doubleValue();
+        if (index != 0 && index != angles.length-1) {
+          angles[index].theta = end;
+          links = buildLinks(index);
+          buildSequence();
+        }
+      }
+    });
+
+    // track undo for theta slider
+    thetaSlider.setOnMousePressed((MouseEvent e) -> {
+      Link selectedLink = (Link) selectedNode.getParent();
+      int id = selectedLink.id;
+      history.offerLast(new Undo(id, 'p', thetaSlider.getValue()));
+      redo.clear();
+    });
+
+    // track slider change
+    taoSlider.valueProperty().addListener((observable, oldVal, newVal) -> {
+      if (selectedNode != null) {
+        Link head = (Link) selectedNode.getParent();
+        int index = head.id;
+        double start, end;
+        start = oldVal.doubleValue();
+        end = newVal.doubleValue();
+        if (index != 0 && index != angles.length-2 && index != angles.length-1) {
+          angles[index].tao = end;
+          links =  buildLinks(index);
+          buildSequence();
+        }
+      }
+    });
+
+    // track undo for tao slider
+    taoSlider.setOnMousePressed((MouseEvent e) -> {
+      Link selectedLink = (Link) selectedNode.getParent();
+      int id = selectedLink.id;
+      history.offerLast(new Undo(id, 'd', taoSlider.getValue()));
+      redo.clear();
+    });
+  }
+
   // open an amino acid or secondary structure file
   @FXML
   private void openFile(ActionEvent e) throws IOException {
     FileChooser fileModal = new FileChooser();
     fileModal.setTitle("Open Resource File");
     fileModal.getExtensionFilters().addAll(
-      new ExtensionFilter("Amino Acid (.aa)", "*.aa"),
-      new ExtensionFilter("Secondary Structure (.ss)", "*.ss"),
-      new ExtensionFilter("Contact Map (.rr)", "*.rr"),
-      new ExtensionFilter("Protein Data Bank (.pdb)", "*.pdb")
+      new ExtensionFilter("Amino Acid \".aa\"", "*.aa"),
+      new ExtensionFilter("Secondary Structure \".ss\"", "*.ss"),
+      new ExtensionFilter("Contact Map \".rr\"", "*.rr"),
+      new ExtensionFilter("Protein Data Bank \".pdb\"", "*.pdb")
     );
     File f = fileModal.showOpenDialog(app.getScene().getWindow());
     if (f != null) {
-      buildSequence(f);
+      initSequence(f);
     }
   }
+
+  // undo redo fields - implements Queue interface but using as stack
+  LinkedList<Undo> history = new LinkedList<Undo>();
+  LinkedList<Undo> redo = new LinkedList<Undo>();
+
+  public void undo() {
+    Undo u = history.pollLast();
+    // no values left in undo history
+    if (u == null) return;
+
+    redo.offerLast(u);
+    if (u.angleType == 'p') {
+      angles[u.id].theta = u.angle;
+      links = buildLinks(u.id);
+      buildSequence();
+      thetaSlider.setValue(u.angle);
+      selectedNode = links[u.id].node;
+      selectedNode.setMaterial(green);
+    }
+    else {
+      angles[u.id].tao = u.angle;
+      links = buildLinks(u.id);
+      buildSequence();
+      taoSlider.setValue(u.angle);
+      selectedNode = links[u.id].node;
+      selectedNode.setMaterial(green);
+    }
+  }
+
+  // CURRENTLY NOT WORKING
+
+  // public void redo() {
+  //   Undo r = redo.pollLast();
+  //   if (r != null) {
+  //     history.offerLast(r);
+  //     if (r.angleType == 'p') {
+  //       angles[r.id].theta = r.angle;
+  //       links = buildLinks(r.id);
+  //       buildSequence();
+  //       thetaSlider.setValue(r.angle);
+  //       selectedNode = links[r.id].node;
+  //       selectedNode.setMaterial(green);
+  //     }
+  //     else {
+  //       angles[r.id].tao = r.angle;
+  //       links = buildLinks(r.id);
+  //       buildSequence();
+  //       taoSlider.setValue(r.angle);
+  //       selectedNode = links[r.id].node;
+  //       selectedNode.setMaterial(green);
+  //     }
+  //   }
+  // }
 
   public void initialize() throws IOException {
     // NOT NEEDED - FOR INTERNAL USE
     // buildAxes();
     initPNGs();
-    initSecondary();
+    initSecondaryMaps();
     resetSliders();
     SubScene view = initView(world);
     Pane viewport = new Pane(view);
     sizeView(view);
     app.setCenter(viewport);
     handle3DMouse(view, world);
+    handleSliders();
   }
 }
