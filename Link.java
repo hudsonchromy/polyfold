@@ -78,6 +78,10 @@ public class Link extends Group {
     setTranslateZ(z);
   }
 
+  public Point getCenter() {
+    return new Point(getTranslateX(), getTranslateY(), getTranslateZ());
+  }
+
   public void rotateRod(Link other) {
     double x0, y0, z0, xF, yF, zF;
     xF = getTranslateX();
