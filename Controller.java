@@ -10,6 +10,7 @@ import javafx.scene.shape.*;
 import javafx.scene.transform.*;
 import javafx.stage.*;
 import javafx.stage.FileChooser.*;
+import javafx.scene.text.*;
 import javafx.fxml.FXML;
 import java.util.*;
 import java.io.*;
@@ -203,7 +204,6 @@ public class Controller {
 
   // helper function for building the sequence
   public Link[] buildLinks(String content, String extension) {
-    int n = (content != null) ? content.length() : 0;
     setAngularArray(content, extension);
     // convert to cartesion points
     carts = DihedralUtility.angles2Carts(angles);
@@ -231,10 +231,13 @@ public class Controller {
     if (isAutoZoom) setCameraZoom();
   }
 
+  // status bar structure fields
+  @FXML private HBox statusBar;
+
   // add all the links
   public void initSequence(File f) throws IOException {
-    String extension = getExtension(f);
     String content = new Scanner(f).useDelimiter("\\A").next();
+    String extension = getExtension(f);
     // build links
     links = buildLinks(content, extension);
     buildSequence();
@@ -472,8 +475,14 @@ public class Controller {
 
   public void undo() {
     Undo u = history.pollLast();
-    // no values left in undo history
-    if (u == null) return;
+    // no values left in undo history - deselect everything
+    if (u == null) {
+      if (selectedNode != null) {
+        selectedNode.setMaterial(red);
+        selectedNode = null;
+      }
+      return;
+    }
 
     redo.offerLast(u);
     if (u.angleType == 'p') {

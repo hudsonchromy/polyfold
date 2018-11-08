@@ -64,12 +64,8 @@
   </right>
 
   <bottom>
-    <VBox id="statusbar">
-      <children>
-        <Text fx:id="aa" text=""/>
-        <Text fx:id="ss" text=""/>
-      </children>
-    </VBox>
+    <HBox fx:id="statusBar" id="statusbar">
+    </HBox>
   </bottom>
 
   <center>
@@ -83,13 +79,13 @@
             <Menu text="File">
               <items>
                 <MenuItem text="Open..." onAction="#openFile" accelerator="Shortcut+o"/>
-                <MenuItem text="Save As..."/>
+                <MenuItem text="Save As..." accelerator="Shortcut+s"/>
               </items>
             </Menu>
             <Menu text="Edit">
               <items>
                 <MenuItem text="Undo" onAction="#undo" accelerator="Shortcut+z"/>
-                <MenuItem text="Redo"/>
+                <MenuItem text="Redo" accelerator="Shortcut+Shift+z"/>
               </items>
             </Menu>
             <Menu text="View">
