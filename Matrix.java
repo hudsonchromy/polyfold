@@ -3,7 +3,7 @@ import java.util.*;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import javafx.scene.Node;
-import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.*;
 import javafx.geometry.Insets;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -103,5 +103,23 @@ public class Matrix extends Application{
          }
       }
       return max;
+   }
+   
+   public double getEuclideanDistance(Sphere point1, Sphere point2){
+      double firstPointXValue = point1.getTranslateX();
+      double firstPointYValue = point1.getTranslateY();
+      double firstPointZValue = point1.getTranslateZ();
+      
+      double secondPointXValue = point2.getTranslateX();
+      double secondPointYValue = point2.getTranslateY();
+      double secondPointZValue = point2.getTranslateZ();
+      
+      double xCalc = Math.pow((firstPointXValue - secondPointXValue), 2);
+      double yCalc = Math.pow((firstPointYValue - secondPointYValue), 2);
+      double zCalc = Math.pow((firstPointZValue - secondPointZValue), 2);
+      
+      double distance = Math.sqrt(xCalc + yCalc + zCalc);
+   
+      return distance;
    }
 }
