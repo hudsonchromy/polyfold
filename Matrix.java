@@ -127,13 +127,14 @@ public class Matrix extends Application{
    }
    
    public boolean isClash(double distance) {
+      //if a adjacent node 
       if (distance == 3.8) {
          return false;
       }
+      //if distance less than 4, exlcuding adjacent nodes
       else if (distance < 4.0) {
          return true;
       }
-      
       else {
          return false;
       }
