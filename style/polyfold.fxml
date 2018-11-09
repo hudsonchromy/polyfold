@@ -22,10 +22,37 @@
         <VBox id="move-panel">
           <children>
             <VBox styleClass="move-pane">
+              <children>
+                <Text styleClass="move-label" text="CONTACT MAP"/>
+                <Separator styleClass="separator"/>
+                <GridPane fx:id="contactMap" id="contact-map"/>
+                <HBox styleClass="score-label">
+                  <Text fx:id="score"/>
+                </HBox>
+              </children>
             </VBox>
             <VBox styleClass="move-pane">
               <children>
-                <HBox styleClass="slider-hbox">
+                <Text styleClass="move-label" text="MOVE PANEL"/>
+                <Separator styleClass="separator"/>
+                <HBox styleClass="info-hbox">
+                  <children>
+                    <Text fx:id="idLabel" styleClass="acid-label" text="Residue ID:"/>
+                  </children>
+                </HBox>
+                <HBox styleClass="info-hbox">
+                  <children>
+                    <Text fx:id="aaLabel" styleClass="acid-label" text="Amino Acid:"/>
+                  </children>
+                </HBox>
+                <HBox styleClass="info-hbox">
+                  <children>
+                    <Text fx:id="ssLabel" styleClass="acid-label" text="Secondary Structure:"/>
+                  </children>
+                </HBox>
+                <Separator styleClass="separator"/>
+                <Text styleClass="move-label" text="PLANAR ANGLE"/>
+                <HBox styleClass="move-hbox">
                   <children>
                     <ImageView fx:id="zeroPNG">
                       <image>
@@ -40,7 +67,8 @@
                     </ImageView>
                   </children>
                 </HBox>
-                <HBox styleClass="slider-hbox">
+                <Text styleClass="move-label" text="DIHEDRAL ANGLE"/>
+                <HBox styleClass="move-hbox">
                   <children>
                     <ImageView fx:id="negPiPNG">
                       <image>
@@ -64,8 +92,6 @@
   </right>
 
   <bottom>
-    <HBox fx:id="statusBar" id="statusbar">
-    </HBox>
   </bottom>
 
   <center>
@@ -79,7 +105,7 @@
             <Menu text="File">
               <items>
                 <MenuItem text="Open..." onAction="#openFile" accelerator="Shortcut+o"/>
-                <MenuItem text="Save As..." accelerator="Shortcut+s"/>
+                <MenuItem text="Save As..." onAction="#saveToPDB" accelerator="Shortcut+s"/>
               </items>
             </Menu>
             <Menu text="Edit">
@@ -110,9 +136,7 @@
         </MenuBar>
         <HBox id="toolbar">
           <children>
-            <ToggleButton text="Auto-Zoom" onAction="#toggleAutoZoom"/>
-            <Button text="Button"/>
-            <Button text="Button"/>
+            <ToggleButton styleClass="osx-button" text="Auto-Zoom" onAction="#toggleAutoZoom"/>
           </children>
         </HBox>
       </children>

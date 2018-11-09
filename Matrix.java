@@ -21,16 +21,16 @@ public class Matrix extends Application{
    public static void main(String[] args) {
       launch(args);
    }
-   
+
    @Override
    public void start(Stage primaryStage) throws Exception {
       stage = primaryStage;
       stage.setTitle("Test");
-      
-      File inputFile = new File("/Users/kaeul/1AIL/1ail.rr");
+
+      File inputFile = new File("/Users/andrewjmcgehee/Downloads/1AIL/1ail.rr");
       Scene scene = new Scene(generateMatrix(inputFile), 420, 420);
       stage.setScene(scene);
-      
+
       stage.show();
    }
 
@@ -39,33 +39,33 @@ public class Matrix extends Application{
       Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
       double height = screenSize.getHeight() / 2;
       Pane contactMatrix = new Pane();
-               
+
       BufferedReader br = new BufferedReader(new FileReader(file));
       String line;
-      
+
       ArrayList<Integer> iPoints = new ArrayList<Integer>();
       ArrayList<Integer> jPoints = new ArrayList<Integer>();
-      
-      //read in file and populate i and j arraylists 
-      while((line = br.readLine()) != null) {   
+
+      //read in file and populate i and j arraylists
+      while((line = br.readLine()) != null) {
          String iPoint = line.substring(0, line.indexOf(' '));
          int iPointValue = Integer.parseInt(iPoint);
-         
+
          String newString = line.substring(line.indexOf(' '));
          newString = newString.trim();
          String jPoint = newString.substring(0, newString.indexOf(' '));
          int jPointValue = Integer.parseInt(jPoint);
-         
+
          iPoints.add(iPointValue);
-         jPoints.add(jPointValue); 
+         jPoints.add(jPointValue);
       }
-      
+
       int numSpheres = getMax(jPoints);
-     
+
       //create cells for contact matrix
       Rectangle [][] grid = new Rectangle [numSpheres][numSpheres];
       int cellSize = (int) Math.round(height / numSpheres);
-   
+
       for(int i = 0; i < numSpheres; i++) {
          for (int j = 0; j < numSpheres; j++) {
             grid[i][j] = new Rectangle();
@@ -75,14 +75,14 @@ public class Matrix extends Application{
             grid[i][j].setHeight(cellSize);
             grid[i][j].setFill(null);
             grid[i][j].setStroke(Color.BLACK);
-            
+
             if (i == j) {
                grid[i][j].setFill(Color.BLACK);
             }
             contactMatrix.getChildren().add(grid[i][j]);
          }
       }
-     
+
      //fill cells that are in contact
       for(int i = 0; i < jPoints.size(); i++) {
          int iValue = iPoints.get(i);
@@ -91,7 +91,7 @@ public class Matrix extends Application{
       }
       return contactMatrix;
    }
-   
+
    //return number of spheres in molecule
    //FIND BETTER WAY TO DO THIS
    public int getMax(ArrayList<Integer> intArray) {
@@ -99,7 +99,7 @@ public class Matrix extends Application{
       for (int i = 0; i < intArray.size() - 1; i++) {
          max = intArray.get(i);
          if (intArray.get(i + 1) > max) {
-            max = intArray.get(i + 1); 
+            max = intArray.get(i + 1);
          }
       }
       return max;
