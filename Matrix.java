@@ -119,7 +119,23 @@ public class Matrix extends Application{
       double zCalc = Math.pow((firstPointZValue - secondPointZValue), 2);
       
       double distance = Math.sqrt(xCalc + yCalc + zCalc);
-   
+      
+      if (isClash(distance)) {
+         //display some message and undo
+      }
       return distance;
+   }
+   
+   public boolean isClash(double distance) {
+      if (distance == 3.8) {
+         return false;
+      }
+      else if (distance < 4.0) {
+         return true;
+      }
+      
+      else {
+         return false;
+      }
    }
 }
