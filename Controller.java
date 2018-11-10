@@ -603,8 +603,8 @@ public class Controller {
       new ExtensionFilter("Protein Data Bank \".pdb\"", "*.pdb")
     );
     File f = fileModal.showOpenDialog(app.getScene().getWindow());
-    String extension = getExtension(f);
     if (f != null) {
+      String extension = getExtension(f);
       if (extension.equals(".aa")) {
         aaFileRead = true;
         secondaryString = null;
@@ -612,7 +612,8 @@ public class Controller {
         if (selectedNode != null) {
           deselect(selectedNode);
         }
-        f = new File("/Users/andrewjmcgehee/Desktop/1ail.rr");
+      }
+      else if (extension.equals(".rr")) {
         generateContactMap(f);
         updateScore();
       }
