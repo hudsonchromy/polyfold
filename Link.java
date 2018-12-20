@@ -7,8 +7,8 @@ import dihedralutils.DihedralUtility;
 import java.util.*;
 
 public class Link extends Group {
-  private final double NODE_RADIUS = 1.0;
-  private final double ROD_RADIUS = 0.1;
+  private final double NODE_RADIUS = 0.9;
+  private final double ROD_RADIUS = 0.15;
   private final double ROD_HEIGHT = DihedralUtility.BOND_LEN;
 
   public Sphere node;

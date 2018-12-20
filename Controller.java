@@ -10,6 +10,7 @@ import javafx.scene.shape.*;
 import javafx.scene.transform.*;
 import javafx.stage.*;
 import javafx.stage.FileChooser.*;
+import javafx.scene.text.*;
 import javafx.fxml.FXML;
 import java.util.*;
 import java.io.*;
@@ -149,21 +150,79 @@ public class Controller {
     secondaryTao.put('C', -150);
   }
 
-  // helper function for building links - gets all angles
-  public void setAngularArray(String content, String extension) {
-    int n = (content != null) ? content.length() : 0;
+  // maps shorthand characters to full strings for amino acids and secondary structures
+  HashMap<Character, String> shorthandAA = new HashMap<Character, String>();
+  HashMap<Character, String> shorthandSS = new HashMap<Character, String>();
+  HashMap<Character, String> threeCharAA = new HashMap<Character, String>();
+
+  public void initShorthandMaps() {
+    shorthandAA.put('A', "Alanine");
+    shorthandAA.put('R', "Arginine");
+    shorthandAA.put('N', "Asparagine");
+    shorthandAA.put('D', "Aspartic Acid");
+    shorthandAA.put('B', "Asparagine or Aspartic Acid");
+    shorthandAA.put('C', "Cysteine");
+    shorthandAA.put('E', "Glutamic Acid");
+    shorthandAA.put('Q', "Glutamine");
+    shorthandAA.put('Z', "Glutamine or Glutamic Acid");
+    shorthandAA.put('G', "Glycine");
+    shorthandAA.put('H', "Histidine");
+    shorthandAA.put('I', "Isoleucine");
+    shorthandAA.put('L', "Leucine");
+    shorthandAA.put('K', "Lysine");
+    shorthandAA.put('M', "Methionine");
+    shorthandAA.put('F', "Phenylalanine");
+    shorthandAA.put('P', "Proline");
+    shorthandAA.put('S', "Serine");
+    shorthandAA.put('T', "Threonine");
+    shorthandAA.put('W', "Tryptophan");
+    shorthandAA.put('Y', "Tyrosine");
+    shorthandAA.put('V', "Valine");
+
+    threeCharAA.put('A', "ALA");
+    threeCharAA.put('R', "ARG");
+    threeCharAA.put('N', "ASN");
+    threeCharAA.put('D', "ASP");
+    threeCharAA.put('B', "ASX");
+    threeCharAA.put('C', "CYS");
+    threeCharAA.put('E', "GLU");
+    threeCharAA.put('Q', "GLN");
+    threeCharAA.put('Z', "GLX");
+    threeCharAA.put('G', "GLY");
+    threeCharAA.put('H', "HIS");
+    threeCharAA.put('I', "ILE");
+    threeCharAA.put('L', "LEU");
+    threeCharAA.put('K', "LYS");
+    threeCharAA.put('M', "MET");
+    threeCharAA.put('F', "PHE");
+    threeCharAA.put('P', "PRO");
+    threeCharAA.put('S', "SER");
+    threeCharAA.put('T', "THR");
+    threeCharAA.put('W', "TRP");
+    threeCharAA.put('Y', "TYR");
+    threeCharAA.put('V', "VAL");
+
+    shorthandSS.put('H', "Helix");
+    shorthandSS.put('E', "Strand");
+    shorthandSS.put('C', "Coil");
+  }
+
+  // helper function for building links - gets all angles for .aa file
+  public void setAngularArray(String content) {
+    if (content == null) {
+      // aminoAcidError();
+      return;
+    }
+    int n = content.length();
     angles = new Angular[n];
     for (int i = 0; i < n; i++) {
       Angular a = new Angular();
       a.id = i;
+      a.aa = content.charAt(i);
       // first and last node have no theta
       if (i == 0 || i == n-1) {
         a.theta = 2 * Math.PI;
       }
-      else if (content != null && extension.equals(".ss")) {
-        a.theta = secondaryTheta.get(content.charAt(i)) * Math.PI / 180.0;
-      }
-      // no string provided
       else {
         a.theta = 110.0 * Math.PI / 180.0;
       }
@@ -171,10 +230,6 @@ public class Controller {
       if (i == 0 || i == n-1 || i == n-2) {
         a.tao = 2 * Math.PI;
       }
-      else if (content != null && extension.equals(".ss")) {
-        a.tao = secondaryTao.get(content.charAt(i)) * Math.PI / 180.0;
-      }
-      // no string provided
       else {
         a.tao = -150.0 * Math.PI / 180.0;
       }
@@ -182,15 +237,51 @@ public class Controller {
     }
   }
 
+  public void structureAngularArray(String content) {
+    if (content == null || content.length() != links.length) return;
+    int n = links.length;
+    for (int i = 0; i < angles.length; i++) {
+      char c = content.charAt(i);
+      angles[i].ss = c;
+      if (i != 0 && i != n-1) {
+        angles[i].theta = Math.toRadians(secondaryTheta.get(c));
+        if (i != n-2) {
+          angles[i].tao = Math.toRadians(secondaryTao.get(c));
+        }
+      }
+    }
+  }
+
   public void setLinkArray() {
-    links = new Link[carts.length];
+    int n = carts.length;
+    links = new Link[n];
     boolean isEndNode = false;
-    for (int i = 0; i < carts.length; i++) {
+    for (int i = 0; i < n; i++) {
       Cartesian c = carts[i];
       if (i == carts.length-1) isEndNode = true;
-      Link l = new Link(c.pos.x, c.pos.y, c.pos.z, isEndNode);
+      Link l = new Link(c.ca.x, c.ca.y, c.ca.z, isEndNode);
       l.id = i;
-      l.node.setMaterial(red);
+      l.aa = angles[i].aa;
+      // null character
+      if (angles[i].ss != 0) {
+        l.ss = angles[i].ss;
+      }
+      if (secondaryString == null) {
+        l.node.setMaterial(red);
+      }
+      else {
+        switch (secondaryString.charAt(i)) {
+          case 'H':
+            l.node.setMaterial(red);
+            break;
+          case 'E':
+            l.node.setMaterial(yellow);
+            break;
+          case 'C':
+            l.node.setMaterial(blue);
+            break;
+        }
+      }
       links[i] = l;
     }
   }
@@ -202,9 +293,8 @@ public class Controller {
   }
 
   // helper function for building the sequence
-  public Link[] buildLinks(String content, String extension) {
-    int n = (content != null) ? content.length() : 0;
-    setAngularArray(content, extension);
+  public Link[] buildLinks(String content) {
+    setAngularArray(content);
     // convert to cartesion points
     carts = DihedralUtility.angles2Carts(angles);
     setLinkArray();
@@ -213,12 +303,24 @@ public class Controller {
   }
 
   public Link[] buildLinks(int selectionIndex) {
-    int n = angles.length;
     carts = DihedralUtility.angles2Carts(angles);
     setLinkArray();
     connectLinkRods();
-    selectedNode = links[selectionIndex].node;
-    selectedNode.setMaterial(green);
+    if (selectionIndex != -1) {
+      selectedNode = links[selectionIndex].node;
+      selectedNode.setMaterial(green);
+    }
+    return links;
+  }
+
+  private String secondaryString;
+
+  public Link[] structureLinks(String content) {
+    secondaryString = content;
+    structureAngularArray(content);
+    carts = DihedralUtility.angles2Carts(angles);
+    setLinkArray();
+    connectLinkRods();
     return links;
   }
 
@@ -233,10 +335,17 @@ public class Controller {
 
   // add all the links
   public void initSequence(File f) throws IOException {
-    String extension = getExtension(f);
-    String content = new Scanner(f).useDelimiter("\\A").next();
-    // build links
-    links = buildLinks(content, extension);
+    String content = new Scanner(f).useDelimiter("\n").next();
+    content.trim();
+    links = buildLinks(content);
+    buildSequence();
+    setCameraZoom();
+  }
+
+  public void applySecondaryStructure(File f) throws IOException {
+    String content = new Scanner(f).useDelimiter("\n").next();
+    content.trim();
+    links = structureLinks(content);
     buildSequence();
     setCameraZoom();
   }
@@ -315,21 +424,44 @@ public class Controller {
 
   // node selection fields
   Sphere selectedNode;
+  PhongMaterial selectedMaterial;
 
   private void select(Sphere s) {
     if (s == null) return;
     deselect(selectedNode);
     selectedNode = s;
+    selectedMaterial = (PhongMaterial) s.getMaterial();
     s.setMaterial(green);
     Link l = (Link) s.getParent();
     updateSliders(l);
+    updateLinkLabels(l);
   }
 
   private void deselect(Sphere s) {
     if (s == null) return;
+    s.setMaterial(selectedMaterial);
     selectedNode = null;
-    s.setMaterial(red);
+    selectedMaterial = null;
     resetSliders();
+    resetLinkLabels();
+  }
+
+  @FXML private Text idLabel;
+  @FXML private Text aaLabel;
+  @FXML private Text ssLabel;
+
+  public void updateLinkLabels(Link l) {
+    idLabel.setText("Residue ID: " + (l.id + 1));
+    aaLabel.setText("Amino Acid: " + shorthandAA.get(l.aa));
+    if (l.ss != 0) {
+      ssLabel.setText("Secondary Structure: " + shorthandSS.get(l.ss));
+    }
+  }
+
+  public void resetLinkLabels() {
+    idLabel.setText("Residue ID:");
+    aaLabel.setText("Amino Acid:");
+    ssLabel.setText("Secondary Structure: ");
   }
 
   private void handle3DMouse(SubScene scene, final Node root) {
@@ -424,6 +556,10 @@ public class Controller {
       redo.clear();
     });
 
+    thetaSlider.setOnMouseReleased((MouseEvent e) -> {
+      updateScore();
+    });
+
     // track slider change
     taoSlider.valueProperty().addListener((observable, oldVal, newVal) -> {
       if (selectedNode != null) {
@@ -447,7 +583,13 @@ public class Controller {
       history.offerLast(new Undo(id, 'd', taoSlider.getValue()));
       redo.clear();
     });
+
+    taoSlider.setOnMouseReleased((MouseEvent e) -> {
+      updateScore();
+    });
   }
+
+  boolean aaFileRead = false;
 
   // open an amino acid or secondary structure file
   @FXML
@@ -462,7 +604,26 @@ public class Controller {
     );
     File f = fileModal.showOpenDialog(app.getScene().getWindow());
     if (f != null) {
-      initSequence(f);
+      String extension = getExtension(f);
+      if (extension.equals(".aa")) {
+        aaFileRead = true;
+        secondaryString = null;
+        initSequence(f);
+        if (selectedNode != null) {
+          deselect(selectedNode);
+        }
+      }
+      else if (aaFileRead && extension.equals(".rr")) {
+        generateContactMap(f);
+        updateScore();
+      }
+      else if (aaFileRead && extension.equals(".ss")) {
+        applySecondaryStructure(f);
+        if (selectedNode != null) {
+          deselect(selectedNode);
+        }
+        updateScore();
+      }
     }
   }
 
@@ -472,8 +633,14 @@ public class Controller {
 
   public void undo() {
     Undo u = history.pollLast();
-    // no values left in undo history
-    if (u == null) return;
+    // no values left in undo history - deselect everything
+    if (u == null) {
+      if (selectedNode != null) {
+        selectedNode.setMaterial(red);
+        selectedNode = null;
+      }
+      return;
+    }
 
     redo.offerLast(u);
     if (u.angleType == 'p') {
@@ -519,11 +686,169 @@ public class Controller {
   //   }
   // }
 
+  // contact map fields
+  @FXML private GridPane contactMap;
+  @FXML private Text score;
+
+  private boolean[][] isContact;
+  private int width;
+  private int side;
+  private double cellSize;
+  private int totalScore;
+
+  public void generateContactMap(File f) throws IOException {
+    // add error handling
+    if (f == null || links == null) {
+      contactMap.getChildren().clear();
+      contactMap.getChildren().add(new Rectangle(280, 280, Color.WHITE));
+      return;
+    }
+
+    width = 240;
+    side = links.length;
+    cellSize = (double) width / side;
+    isContact = new boolean[side][side];
+    BufferedReader br = new BufferedReader(new FileReader(f));
+
+    while (true) {
+      String line = br.readLine();
+      if (line == null) break;
+      StringTokenizer st = new StringTokenizer(line);
+      int i = Integer.parseInt(st.nextToken()) - 1;
+      int j = Integer.parseInt(st.nextToken()) - 1;
+      isContact[i][j] = true;
+    }
+    totalScore = 0;
+    for (int i = 0; i < side; i++) {
+      for (int j = 0; j < side; j++) {
+        Rectangle r = new Rectangle(cellSize, cellSize);
+        if (j >= i && isContact[i][j] || i == j) {
+          r.setFill(Color.GREY);
+          totalScore += getWeight(i, j);
+        }
+        else {
+          r.setFill(Color.WHITE);
+        }
+        contactMap.add(r, j, i);
+      }
+    }
+    score.setText("Score: 0 of " + totalScore);
+  }
+
+  public int getWeight(int i, int j) {
+    int delta = Math.abs(i - j);
+    if (delta < 6) return 1;
+    if (delta < 12) return 2;
+    if (delta < 24) return 4;
+    return 8;
+  }
+
+  public void updateScore() {
+    if (links == null) return;
+    int n = links.length;
+    boolean[][] tmp = new boolean[n][n];
+
+    int newScore = 0;
+    for (int i = 0; i < links.length; i++) {
+      for (int j = i+1; j < links.length; j++) {
+        if (j == i+1) {
+          tmp[j][i] = true;
+          continue;
+        }
+
+        double distance = getDistance(links[i], links[j]);
+        // handle clash
+        if (distance < 4.0) {
+          undo();
+          return;
+        }
+        if (distance < 8.0) {
+          tmp[j][i] = true;
+          newScore += getWeight(i, j);
+        }
+      }
+    }
+    for (int i = 0; i < n; i++) {
+      for (int j = i+1; j < n; j++) {
+        if (tmp[j][i]) {
+          isContact[j][i] = true;
+        }
+      }
+    }
+    updateContactMap(newScore);
+  }
+
+  public double getDistance(Link a, Link b) {
+    double x0, y0, z0, xF, yF, zF;
+    x0 = a.getTranslateX();
+    y0 = a.getTranslateY();
+    z0 = a.getTranslateZ();
+    xF = b.getTranslateX();
+    yF = b.getTranslateY();
+    zF = b.getTranslateZ();
+    double deltaX = xF - x0;
+    double deltaY = yF - y0;
+    double deltaZ = zF - z0;
+    double sum = Math.pow(deltaX, 2) + Math.pow(deltaY, 2) + Math.pow(deltaZ, 2);
+    return Math.sqrt(sum);
+  }
+
+  public void updateContactMap(int newScore) {
+    contactMap.getChildren().clear();
+    for (int i = 0; i < side; i++) {
+      for (int j = 0; j < side; j++) {
+        Rectangle r = new Rectangle(cellSize, cellSize);
+        if (isContact[i][j] || i == j) {
+          r.setFill(Color.GREY);
+        }
+        else {
+          r.setFill(Color.WHITE);
+        }
+        contactMap.add(r, j, i);
+      }
+    }
+    score.setText("Score: " + newScore + " of " + totalScore);
+  }
+
+  @FXML
+  public void saveToPDB(ActionEvent e) throws IOException {
+    if (links == null) return;
+    FileChooser fileModal = new FileChooser();
+    fileModal.setTitle("Save As...");
+    fileModal.getExtensionFilters().add(
+      new ExtensionFilter("Protein Data Bank \".pdb\"", "*.pdb")
+    );
+    File f = fileModal.showSaveDialog(app.getScene().getWindow());
+    if (f != null) {
+      writeToPDB(f);
+    }
+  }
+
+  public void writeToPDB(File f) throws IOException {
+    BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+    carts = DihedralUtility.angles2Carts(angles);
+    for (int i = 0; i < links.length; i++) {
+      String s = String.format(
+        "ATOM %6d  CA  %-3s %5d    %8.3f%8.3f%8.3f  1.00  0.00\n",
+        i+1,
+        threeCharAA.get(angles[i].aa),
+        angles[i].id,
+        carts[i].ca.x,
+        carts[i].ca.y,
+        carts[i].ca.z
+      );
+      bw.write(s);
+    }
+    bw.close();
+  }
+
   public void initialize() throws IOException {
     // NOT NEEDED - FOR INTERNAL USE
     // buildAxes();
     initPNGs();
+    initShorthandMaps();
     initSecondaryMaps();
+    generateContactMap(null);
     resetSliders();
     SubScene view = initView(world);
     Pane viewport = new Pane(view);

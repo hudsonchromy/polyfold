@@ -16,9 +16,7 @@ CLASSES = \
 	Controller.java \
 	dihedralutils/DihedralUtility.java \
 	PolyFold.java \
-  Link.java \
-	Score.java
-  
+  Link.java
 
 # default behavior
 default: classes

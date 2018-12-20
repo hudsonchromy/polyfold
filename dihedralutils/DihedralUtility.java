@@ -9,14 +9,14 @@ public class DihedralUtility {
 
     // virtual N terminus
     Point N = new Point();
-    N.x = carts[0].pos.x - Math.cos(PI) * BOND_LEN;
-    N.y = carts[0].pos.y - Math.sin(PI) * BOND_LEN;
-    N.z = carts[0].pos.z;
+    N.x = carts[0].ca.x - Math.cos(PI) * BOND_LEN;
+    N.y = carts[0].ca.y - Math.sin(PI) * BOND_LEN;
+    N.z = carts[0].ca.z;
     // virtual C terminus
     Point C = new Point();
-    C.x = carts[carts.length-1].pos.x + Math.cos(PI) * BOND_LEN;
-    C.y = carts[carts.length-1].pos.y + Math.sin(PI) * BOND_LEN;
-    C.z = carts[carts.length-1].pos.z;
+    C.x = carts[carts.length-1].ca.x + Math.cos(PI) * BOND_LEN;
+    C.y = carts[carts.length-1].ca.y + Math.sin(PI) * BOND_LEN;
+    C.z = carts[carts.length-1].ca.z;
 
     Angular a;
     for (int i = 0; i < carts.length; i++) {
@@ -27,14 +27,14 @@ public class DihedralUtility {
         a.tao = 2*PI;
       }
       else {
-        a.tao = getDihedral(carts[i-1].pos, carts[i].pos, carts[i+1].pos, carts[i+2].pos);
+        a.tao = getDihedral(carts[i-1].ca, carts[i].ca, carts[i+1].ca, carts[i+2].ca);
       }
       // theta
       if (i == 0 || i == carts.length-1) {
         a.theta = 2*PI;
       }
       else {
-        a.theta = getAngle(carts[i-1].pos, carts[i].pos, carts[i+1].pos);
+        a.theta = getAngle(carts[i-1].ca, carts[i].ca, carts[i+1].ca);
       }
       angles[i] = a;
     }
@@ -52,27 +52,27 @@ public class DihedralUtility {
     N.z = 0.0;
     // first node at origin
     c.id = angles[0].id;
-    c.pos.x = 0.0;
-    c.pos.y = 0.0;
-    c.pos.z = 0.0;
+    c.ca.x = 0.0;
+    c.ca.y = 0.0;
+    c.ca.z = 0.0;
     carts[0] = c;
     // second node at bond length along x axis
     c = new Cartesian();
     c.id = angles[1].id;
-    c.pos.x = BOND_LEN;
-    c.pos.y = 0.0;
-    c.pos.z = 0.0;
+    c.ca.x = BOND_LEN;
+    c.ca.y = 0.0;
+    c.ca.z = 0.0;
     carts[1] = c;
     // third node at bond angle and bond length
     c = new Cartesian();
     c.id = angles[2].id;
-    setCoordinate(N, carts[0].pos, carts[1].pos, c.pos, angles[1].tao, angles[1].theta, BOND_LEN);
+    setCoordinate(N, carts[0].ca, carts[1].ca, c.ca, angles[1].tao, angles[1].theta, BOND_LEN);
     carts[2] = c;
 
     for (int i = 3; i < angles.length; i++) {
       c = new Cartesian();
       c.id = angles[i].id;
-      setCoordinate(carts[i-3].pos, carts[i-2].pos, carts[i-1].pos, c.pos, angles[i-2].tao, angles[i-1].theta, BOND_LEN);
+      setCoordinate(carts[i-3].ca, carts[i-2].ca, carts[i-1].ca, c.ca, angles[i-2].tao, angles[i-1].theta, BOND_LEN);
       carts[i] = c;
     }
     return carts;
