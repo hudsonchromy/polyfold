@@ -613,7 +613,7 @@ public class Controller {
           deselect(selectedNode);
         }
       }
-      else if (extension.equals(".rr")) {
+      else if (aaFileRead && extension.equals(".rr")) {
         generateContactMap(f);
         updateScore();
       }
