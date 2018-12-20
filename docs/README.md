@@ -9,6 +9,9 @@ well as advanced users. No prior scientific background is needed to play PolyFol
 based entirely on human intuition and passion for solving puzzles with important implications 
 in science and medicine. Play PolyFold!
 
+## Demo
+A small demo video for the alpha version of Polyfold is available for download above. Simply click on the file named "Polyfold Demo.mp4," then click on "Raw" to download the video.
+
 ## How to Download, Compile, and Run the Source Code
 ### From Terminal:
 1. Run the following line is your desired directory:
