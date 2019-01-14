@@ -14,6 +14,11 @@ import javafx.scene.text.*;
 import javafx.fxml.FXML;
 import java.util.*;
 import java.io.*;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipEntry;
+import java.util.Scanner;
+
+import java.util.zip.ZipInputStream;
 
 import dihedralutils.*;
 
@@ -28,11 +33,12 @@ public class Controller {
 
   // camera related fields
   final int VIEWPORT_SIZE = 800;
-  final double CAM_INIT_DISTANCE = 100;
+  //changed this from 100
+  final double CAM_INIT_DISTANCE = 500;
   final double CAM_NEAR_CLIP = 0.1;
   final double CAM_FAR_CLIP = 2000;
   final double CAM_MIN_ZOOM = 30;
-  final double CAM_MAX_ZOOM = 1000;
+  final double CAM_MAX_ZOOM = 100;
   final double AXIS_LENGTH = 20;
   // note that camera move speed will vary with zoom level
   double cam_speed = Math.abs(CAM_INIT_DISTANCE / 1000.0);
@@ -99,7 +105,7 @@ public class Controller {
     yAxis.setMaterial(green);
     zAxis.setMaterial(blue);
     axes.getChildren().addAll(xAxis, yAxis, zAxis);
-    axes.setVisible(false);
+    axes.setVisible(true);
     world.getChildren().addAll(axes);
   }
 
@@ -590,35 +596,70 @@ public class Controller {
   }
 
   boolean aaFileRead = false;
-
+  
   // open an amino acid or secondary structure file
-  @FXML
+   @FXML
   private void openFile(ActionEvent e) throws IOException {
     FileChooser fileModal = new FileChooser();
     fileModal.setTitle("Open Resource File");
     fileModal.getExtensionFilters().addAll(
+      new ExtensionFilter("Zip File \".zip\"", "*.zip"),
       new ExtensionFilter("Amino Acid \".aa\"", "*.aa"),
       new ExtensionFilter("Secondary Structure \".ss\"", "*.ss"),
       new ExtensionFilter("Contact Map \".rr\"", "*.rr"),
       new ExtensionFilter("Protein Data Bank \".pdb\"", "*.pdb")
     );
     File f = fileModal.showOpenDialog(app.getScene().getWindow());
+    LinkedList<String> filesIn = new LinkedList<String>();
     if (f != null) {
+      String[] adding = new String[3];
+      // 0 = .aa | 1 = .rr | 2 = .ss
       String extension = getExtension(f);
-      if (extension.equals(".aa")) {
+      if(extension.equals(".zip")) {
+        filesIn = unZipIt(f.getCanonicalPath(), "inputData");
+        while((adding[0] == null || adding[1] == null || adding[2] == null) && filesIn.size() > 0) {
+          String current = filesIn.poll();
+          File currentFile = new File(current);
+          String cExtension = getExtension(currentFile);
+          if(current == null || cExtension == null) {
+            continue;
+          }
+          if(cExtension.equals(".aa")) {
+            adding[0] = current;
+          } else if(cExtension.equals(".rr")) {
+            adding[1] = current;
+          } else if(cExtension.equals(".ss")) {
+            adding[2] = current;
+          }
+        }
+
+      } else if(extension.equals(".aa")) {
+        adding[0] = f.getCanonicalPath();
+      } else if(extension.equals(".rr")) {
+        adding[1] = f.getCanonicalPath();
+      } else if (extension.equals(".ss")) {
+        adding[2] = f.getCanonicalPath();
+      }
+      if(adding[0] != null) {
         aaFileRead = true;
         secondaryString = null;
-        initSequence(f);
+        File fileAdding = new File(adding[0]);
+        //PolyFold.getStage().setTitle("changed");
+        //PolyFold.changeTitle("changed");
+        //stage.setTitle("PolyFold (Alpha Version) changed");
+        initSequence(fileAdding);
         if (selectedNode != null) {
           deselect(selectedNode);
         }
       }
-      else if (aaFileRead && extension.equals(".rr")) {
-        generateContactMap(f);
+      if (aaFileRead && adding[1] != null) {
+        File fileAdding = new File(adding[1]);
+        generateContactMap(fileAdding);
         updateScore();
       }
-      else if (aaFileRead && extension.equals(".ss")) {
-        applySecondaryStructure(f);
+      if (aaFileRead && adding[2] != null) {
+        File fileAdding = new File(adding[2]);
+        applySecondaryStructure(fileAdding);
         if (selectedNode != null) {
           deselect(selectedNode);
         }
@@ -626,6 +667,48 @@ public class Controller {
       }
     }
   }
+
+  public LinkedList<String> unZipIt(String zipFile, String outputFolder){
+    LinkedList<String> filesMade= new LinkedList<String>();
+     byte[] buffer = new byte[1024];
+     try{ 
+      //create output directory is not exists
+      File folder = new File(outputFolder);
+      if(!folder.exists()){
+        folder.mkdir();
+      }
+      //get the zip file content
+      ZipInputStream zis = 
+        new ZipInputStream(new FileInputStream(zipFile));
+      //get the zipped file list entry
+      ZipEntry ze = zis.getNextEntry();
+      while(ze!=null){
+        if(ze.getName().charAt(0) == '_'){
+            ze = zis.getNextEntry();
+            continue;
+         }  
+         String fileName = ze.getName();
+           File newFile = new File(outputFolder + File.separator + fileName);
+           filesMade.offer(newFile.getCanonicalPath()); 
+            //create all non exists folders
+            new File(newFile.getParent()).mkdirs();  
+            FileOutputStream fos = new FileOutputStream(newFile);             
+            int len;
+            while ((len = zis.read(buffer)) > 0) {
+              fos.write(buffer, 0, len);
+            }
+            fos.close();   
+            ze = zis.getNextEntry();
+            }
+        zis.closeEntry();
+      zis.close();
+    }catch(IOException ex){
+       ex.printStackTrace(); 
+    } finally {
+      return filesMade;
+    }
+   }    
+
 
   // undo redo fields - implements Queue interface but using as stack
   LinkedList<Undo> history = new LinkedList<Undo>();
