@@ -14,6 +14,7 @@ import javafx.scene.text.*;
 import javafx.fxml.FXML;
 import java.util.*;
 import java.io.*;
+import java.util.zip.*;
 
 import dihedralutils.*;
 
@@ -28,6 +29,7 @@ public class Controller {
 
   // camera related fields
   final int VIEWPORT_SIZE = 800;
+  //changed this from 100
   final double CAM_INIT_DISTANCE = 100;
   final double CAM_NEAR_CLIP = 0.1;
   final double CAM_FAR_CLIP = 2000;
@@ -590,42 +592,114 @@ public class Controller {
   }
 
   boolean aaFileRead = false;
-
+  
   // open an amino acid or secondary structure file
   @FXML
   private void openFile(ActionEvent e) throws IOException {
-    FileChooser fileModal = new FileChooser();
-    fileModal.setTitle("Open Resource File");
-    fileModal.getExtensionFilters().addAll(
-      new ExtensionFilter("Amino Acid \".aa\"", "*.aa"),
-      new ExtensionFilter("Secondary Structure \".ss\"", "*.ss"),
-      new ExtensionFilter("Contact Map \".rr\"", "*.rr"),
-      new ExtensionFilter("Protein Data Bank \".pdb\"", "*.pdb")
-    );
-    File f = fileModal.showOpenDialog(app.getScene().getWindow());
-    if (f != null) {
+  FileChooser fileModal = new FileChooser();
+  fileModal.setTitle("Open Resource File");
+  fileModal.getExtensionFilters().addAll(
+    new ExtensionFilter("ZIP Archive \".zip\"", "*.zip"),
+    new ExtensionFilter("Protein Data Bank \".pdb\"", "*.pdb")
+  );
+  File f = fileModal.showOpenDialog(app.getScene().getWindow());
+  LinkedList<String> filesInZip = new LinkedList<String>();
+  if (f != null) {
+      String[] fileTypeFrequency = new String[3];
+      // 0 = .aa | 1 = .rr | 2 = .ss
       String extension = getExtension(f);
-      if (extension.equals(".aa")) {
-        aaFileRead = true;
-        secondaryString = null;
-        initSequence(f);
-        if (selectedNode != null) {
-          deselect(selectedNode);
+      if (extension.equals(".zip")) {
+        filesInZip = unZip(f.getCanonicalPath());
+        String aa = null;
+        for (String currentFile: filesInZip) {
+          if (currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".aa")) {
+            if (aa == null) {
+              aa = currentFile;
+            }
+            else {
+            //if there is already an aa found
+              aa = null;
+              System.out.println("ERROR: There is more than one .aa file");
+            }
+          }
         }
-      }
-      else if (aaFileRead && extension.equals(".rr")) {
-        generateContactMap(f);
-        updateScore();
-      }
-      else if (aaFileRead && extension.equals(".ss")) {
-        applySecondaryStructure(f);
-        if (selectedNode != null) {
-          deselect(selectedNode);
+        if (aa != null) {
+        //if there was one .aa file found
+          //set aa
+          secondaryString = null;
+          File fileAdding = new File(aa);
+          initSequence(fileAdding);
+          if (selectedNode != null) {
+            deselect(selectedNode);
+          }
+          for (String currentFile: filesInZip) {
+          //look for matching .ss and .rr
+            if(currentFile.substring(0, currentFile.length() - 3).equals(currentFile.substring(0, currentFile.length() - 3))) {
+              if(currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".ss")) {
+                //set .ss
+                File ssAdding = new File(currentFile);
+                applySecondaryStructure(ssAdding);
+                if (selectedNode != null) {
+                  deselect(selectedNode);
+                }
+                //updateScore();
+              }
+              if(currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".rr")) {
+                //set .rr
+                File rrAdding = new File(currentFile);
+                generateContactMap(rrAdding);
+                updateScore();
+              }
+            }
+          }
         }
-        updateScore();
       }
     }
   }
+
+  public LinkedList<String> unZip(String zipFile){
+    LinkedList<String> filesExtracted = new LinkedList<String>();
+    byte[] buffer = new byte[1024];
+    String outputFolder = zipFile.substring(0, zipFile.length()-4);
+    try { 
+      //create output directory is not exists
+      File folder = new File(outputFolder);
+      if (!folder.exists()) {
+        folder.mkdir();
+      }
+      //get the zip file content
+      ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
+      //get the zipped file list entry
+      ZipEntry ze = zis.getNextEntry();
+      while (ze != null) {
+        if (!ze.getName().matches("[-_. A-Za-z0-9]+\\.(aa|ss|rr)")) {
+            ze = zis.getNextEntry();
+            continue;
+        }  
+        String fileName = ze.getName();
+        File newFile = new File(outputFolder + File.separator + fileName);
+        filesExtracted.offer(newFile.getCanonicalPath()); 
+        //create all non exists folders
+        new File(newFile.getParent()).mkdirs();  
+        FileOutputStream fos = new FileOutputStream(newFile);             
+        int len;
+        while ((len = zis.read(buffer)) > 0) {
+          fos.write(buffer, 0, len);
+        }
+        fos.close();   
+        ze = zis.getNextEntry();
+      }
+      zis.closeEntry();
+      zis.close();
+    } 
+    catch (IOException ex) {
+       ex.printStackTrace(); 
+    } 
+    finally {
+      return filesExtracted;
+    }
+   }    
+
 
   // undo redo fields - implements Queue interface but using as stack
   LinkedList<Undo> history = new LinkedList<Undo>();
