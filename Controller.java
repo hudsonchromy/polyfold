@@ -598,6 +598,16 @@ public class Controller {
       updateScore();
     });
   }
+
+  @FXML
+  private void minimizeButton(ActionEvent e) {
+    PolyFold.minimizeWindow();
+  }
+
+  @FXML
+  private void fullScreenButton(ActionEvent e) {
+    PolyFold.makeFullScreen();
+  }
   
   @FXML private Text proteinName;
   // open an amino acid or secondary structure file
