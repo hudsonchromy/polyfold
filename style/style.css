@@ -159,4 +159,9 @@
   -fx-font-size: 14;
 }
 
+.progress-bar {
+  -fx-accent: black;
+  -fx-box-border: black;
+  -fx-alignment:right;
+}
 
