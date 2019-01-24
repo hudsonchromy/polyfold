@@ -129,8 +129,8 @@
             </Menu>
             <Menu text="Window">
               <items>
-                <MenuItem text="Minimize"/>
-                <MenuItem text="Full Screen"/>
+                <MenuItem text="Minimize" onAction="#minimizeButton"/>
+                <MenuItem text="Full Screen" onAction="#fullScreenButton"/>
               </items>
             </Menu>
             <Menu text="Help">
