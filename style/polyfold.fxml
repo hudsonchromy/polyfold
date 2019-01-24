@@ -27,6 +27,7 @@
                 <Separator styleClass="separator"/>
                 <GridPane fx:id="contactMap" id="contact-map"/>
                 <HBox styleClass="score-label">
+                  <ProgressBar fx:id="progressBar" progress="0.0" styleClass="progress-bar" />
                   <Text fx:id="score"/>
                 </HBox>
               </children>
@@ -51,7 +52,10 @@
                   </children>
                 </HBox>
                 <Separator styleClass="separator"/>
-                <Text styleClass="move-label" text="PLANAR ANGLE"/>
+                <HBox styleClass = "move-hbox">
+                  <Text fx:id = "planarAngle" styleClass = "move-label" text = ""/>
+                  <Text styleClass="move-label" text=" PLANAR ANGLE"/>
+                </HBox>
                 <HBox styleClass="move-hbox">
                   <children>
                     <ImageView fx:id="zeroPNG">
@@ -67,7 +71,10 @@
                     </ImageView>
                   </children>
                 </HBox>
-                <Text styleClass="move-label" text="DIHEDRAL ANGLE"/>
+                <HBox styleClass = "move-hbox">
+                  <Text fx:id = "dihedralAngle" styleClass = "move-label" text = ""/>
+                  <Text styleClass="move-label" text=" DIHEDRAL ANGLE"/>
+                </HBox>
                 <HBox styleClass="move-hbox">
                   <children>
                     <ImageView fx:id="negPiPNG">
@@ -137,6 +144,7 @@
         <HBox id="toolbar">
           <children>
             <ToggleButton styleClass="osx-button" text="Auto-Zoom" onAction="#toggleAutoZoom"/>
+            <Text fx:id="proteinName" styleClass="proteinName-label" text=""/>
           </children>
         </HBox>
       </children>
