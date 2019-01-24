@@ -14,6 +14,8 @@ import javafx.scene.text.*;
 import javafx.fxml.FXML;
 import java.util.*;
 import java.io.*;
+import java.util.zip.*;
+import java.text.*;
 
 import dihedralutils.*;
 
@@ -28,6 +30,7 @@ public class Controller {
 
   // camera related fields
   final int VIEWPORT_SIZE = 800;
+  //changed this from 100
   final double CAM_INIT_DISTANCE = 100;
   final double CAM_NEAR_CLIP = 0.1;
   final double CAM_FAR_CLIP = 2000;
@@ -365,6 +368,7 @@ public class Controller {
   @FXML private ImageView piPNG2;
   @FXML private ImageView negPiPNG;
   @FXML private ImageView zeroPNG;
+  @FXML private ProgressBar progressBar;
 
   private final double PI = Math.PI;
 
@@ -531,8 +535,12 @@ public class Controller {
     });
   }
 
+  @FXML private Text planarAngle; 
+  @FXML private Text dihedralAngle;
+
   public void handleSliders() {
     // track slider value for theta
+    DecimalFormat df = new DecimalFormat("0.00");
     thetaSlider.valueProperty().addListener((observable, oldVal, newVal) -> {
       if (selectedNode != null) {
         Link selectedLink = (Link) selectedNode.getParent();
@@ -542,6 +550,7 @@ public class Controller {
         end = newVal.doubleValue();
         if (index != 0 && index != angles.length-1) {
           angles[index].theta = end;
+          planarAngle.setText(df.format(thetaSlider.getValue()));
           links = buildLinks(index);
           buildSequence();
         }
@@ -570,6 +579,7 @@ public class Controller {
         end = newVal.doubleValue();
         if (index != 0 && index != angles.length-2 && index != angles.length-1) {
           angles[index].tao = end;
+          dihedralAngle.setText(df.format(taoSlider.getValue()));
           links =  buildLinks(index);
           buildSequence();
         }
@@ -588,44 +598,117 @@ public class Controller {
       updateScore();
     });
   }
-
-  boolean aaFileRead = false;
-
+  
+  @FXML private Text proteinName;
   // open an amino acid or secondary structure file
+  boolean contactMapLoaded = false;
   @FXML
   private void openFile(ActionEvent e) throws IOException {
     FileChooser fileModal = new FileChooser();
     fileModal.setTitle("Open Resource File");
     fileModal.getExtensionFilters().addAll(
-      new ExtensionFilter("Amino Acid \".aa\"", "*.aa"),
-      new ExtensionFilter("Secondary Structure \".ss\"", "*.ss"),
-      new ExtensionFilter("Contact Map \".rr\"", "*.rr"),
+      new ExtensionFilter("ZIP Archive \".zip\"", "*.zip"),
       new ExtensionFilter("Protein Data Bank \".pdb\"", "*.pdb")
     );
     File f = fileModal.showOpenDialog(app.getScene().getWindow());
+    LinkedList<String> filesInZip = new LinkedList<String>();
     if (f != null) {
+      String[] fileTypeFrequency = new String[3];
+      // 0 = .aa | 1 = .rr | 2 = .ss
       String extension = getExtension(f);
-      if (extension.equals(".aa")) {
-        aaFileRead = true;
-        secondaryString = null;
-        initSequence(f);
-        if (selectedNode != null) {
-          deselect(selectedNode);
+      if (extension.equals(".zip")) {
+        filesInZip = unZip(f.getCanonicalPath());
+        String aa = null;
+        for (String currentFile: filesInZip) {
+          if (currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".aa")) {
+            if (aa == null) {
+              aa = currentFile;
+            }
+            else {
+            //if there is already an aa found
+              aa = null;
+              System.out.println("ERROR: There is more than one .aa file");
+            }
+          }
         }
-      }
-      else if (aaFileRead && extension.equals(".rr")) {
-        generateContactMap(f);
-        updateScore();
-      }
-      else if (aaFileRead && extension.equals(".ss")) {
-        applySecondaryStructure(f);
-        if (selectedNode != null) {
-          deselect(selectedNode);
+        if (aa != null) {
+        //if there was one .aa file found
+          //set aa
+          secondaryString = null;
+          File fileAdding = new File(aa);
+          initSequence(fileAdding);
+          PolyFold.setPrimaryStageTitle("PolyFold (Alpha Version) " + fileAdding.getName().substring(0, fileAdding.getName().length()-3));
+          if (selectedNode != null) {
+            deselect(selectedNode);
+          }
+          for (String currentFile: filesInZip) {
+          //look for matching .ss and .rr
+            if (currentFile.substring(0, currentFile.length() - 3).equals(currentFile.substring(0, currentFile.length() - 3))) {
+              if (currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".ss")) {
+                //set .ss
+                File ssAdding = new File(currentFile);
+                applySecondaryStructure(ssAdding);
+                if (selectedNode != null) {
+                  deselect(selectedNode);
+                }
+              }
+              if (currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".rr")) {
+                //set .rr
+                contactMapLoaded = true;
+                File rrAdding = new File(currentFile);
+                generateContactMap(rrAdding);
+                updateScore();
+              }
+            }
+          }
         }
-        updateScore();
       }
     }
   }
+
+  public LinkedList<String> unZip(String zipFile){
+    LinkedList<String> filesExtracted = new LinkedList<String>();
+    byte[] buffer = new byte[1024];
+    String outputFolder = zipFile.substring(0, zipFile.length()-4);
+    try { 
+      //create output directory is not exists
+      File folder = new File(outputFolder);
+      if (!folder.exists()) {
+        folder.mkdir();
+      }
+      //get the zip file content
+      ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
+      //get the zipped file list entry
+      ZipEntry ze = zis.getNextEntry();
+      while (ze != null) {
+        if (!ze.getName().matches("[-_. A-Za-z0-9]+\\.(aa|ss|rr)")) {
+            ze = zis.getNextEntry();
+            continue;
+        }  
+        String fileName = ze.getName();
+        File newFile = new File(outputFolder + File.separator + fileName);
+        filesExtracted.offer(newFile.getCanonicalPath()); 
+        //create all non exists folders
+        new File(newFile.getParent()).mkdirs();  
+        FileOutputStream fos = new FileOutputStream(newFile);             
+        int len;
+        while ((len = zis.read(buffer)) > 0) {
+          fos.write(buffer, 0, len);
+        }
+        fos.close();   
+        ze = zis.getNextEntry();
+      }
+      zis.closeEntry();
+      zis.close();
+    } 
+    catch (IOException ex) {
+       ex.printStackTrace(); 
+    } 
+    finally {
+      return filesExtracted;
+    }
+   }    
+
 
   // undo redo fields - implements Queue interface but using as stack
   LinkedList<Undo> history = new LinkedList<Undo>();
@@ -690,6 +773,7 @@ public class Controller {
   @FXML private GridPane contactMap;
   @FXML private Text score;
 
+  private double[][] distanceArray;
   private boolean[][] isContact;
   private int width;
   private int side;
@@ -707,32 +791,51 @@ public class Controller {
     width = 240;
     side = links.length;
     cellSize = (double) width / side;
-    isContact = new boolean[side][side];
+    distanceArray = new double[side][side];
     BufferedReader br = new BufferedReader(new FileReader(f));
+    double totalScoreDouble = 0.0;
 
+    totalScore = 0;
     while (true) {
       String line = br.readLine();
       if (line == null) break;
       StringTokenizer st = new StringTokenizer(line);
       int i = Integer.parseInt(st.nextToken()) - 1;
       int j = Integer.parseInt(st.nextToken()) - 1;
-      isContact[i][j] = true;
+      String trash = st.nextToken();
+      trash = st.nextToken();
+      double dist = Double.parseDouble(st.nextToken());
+      totalScoreDouble += dist;
+      distanceArray[i][j] = dist;
     }
-    totalScore = 0;
+
+    totalScore = (int) totalScoreDouble;
     for (int i = 0; i < side; i++) {
       for (int j = 0; j < side; j++) {
         Rectangle r = new Rectangle(cellSize, cellSize);
-        if (j >= i && isContact[i][j] || i == j) {
+        if (i == j) {
           r.setFill(Color.GREY);
-          totalScore += getWeight(i, j);
+        }
+        else if (i < j) {
+          if (distanceArray[i][j] == 0.0) {
+            r.setFill(Color.GREY);
+            distanceArray[i][j] = -1;
+          }
+          else {
+            r.setFill(Color.rgb(0, 255, 0));
+          }
         }
         else {
-          r.setFill(Color.WHITE);
+          distanceArray[i][j] = getDistance(links[i], links[j]);
+          double err = Math.abs((distanceArray[j][i] - distanceArray[i][j]) / distanceArray[j][i]);
+          int greenValue = (int)Math.min((err * 510), 255.0);
+          int redValue = Math.min(510 - greenValue, 255);
+          r.setFill(Color.rgb(redValue, greenValue, 0));
         }
         contactMap.add(r, j, i);
       }
     }
-    score.setText("Score: 0 of " + totalScore);
+    score.setText(" 0 / " + totalScore);
   }
 
   public int getWeight(int i, int j) {
@@ -743,39 +846,31 @@ public class Controller {
     return 8;
   }
 
+  //ProgressBar progressBar = new ProgressBar(0);
+
   public void updateScore() {
     if (links == null) return;
-    int n = links.length;
-    boolean[][] tmp = new boolean[n][n];
-
-    int newScore = 0;
-    for (int i = 0; i < links.length; i++) {
-      for (int j = i+1; j < links.length; j++) {
-        if (j == i+1) {
-          tmp[j][i] = true;
-          continue;
-        }
-
-        double distance = getDistance(links[i], links[j]);
-        // handle clash
-        if (distance < 4.0) {
+    if (!contactMapLoaded) return;
+    double newScore = 0;
+    for (int i = 1; i < side; i++) {
+      for (int j = 0; j < i; j++) {
+        double expected = distanceArray[j][i];
+        double actual = getDistance(links[i], links[j]);
+        if(actual < 3.7) {
           undo();
           return;
         }
-        if (distance < 8.0) {
-          tmp[j][i] = true;
-          newScore += getWeight(i, j);
+        double offBy = actual - expected;
+        if (offBy < expected) {
+          newScore += (expected - offBy);
+        } 
+        else if (offBy / 10.0 < expected) {
+          newScore += Math.abs((expected - offBy)) / 10;
         }
       }
     }
-    for (int i = 0; i < n; i++) {
-      for (int j = i+1; j < n; j++) {
-        if (tmp[j][i]) {
-          isContact[j][i] = true;
-        }
-      }
-    }
-    updateContactMap(newScore);
+    progressBar.setProgress(newScore / totalScore);
+    updateContactMap((int)newScore);
   }
 
   public double getDistance(Link a, Link b) {
@@ -794,20 +889,38 @@ public class Controller {
   }
 
   public void updateContactMap(int newScore) {
+    Scanner pause = new Scanner(System.in);
     contactMap.getChildren().clear();
     for (int i = 0; i < side; i++) {
       for (int j = 0; j < side; j++) {
-        Rectangle r = new Rectangle(cellSize, cellSize);
-        if (isContact[i][j] || i == j) {
-          r.setFill(Color.GREY);
+        Rectangle rect = new Rectangle(cellSize, cellSize);
+        if (distanceArray[i][j] < 0 || distanceArray[j][i] < 0) {
+          rect.setFill(Color.GREY);
+        }
+        else if (i < j) {
+          rect.setFill(Color.rgb(0, 255, 0));
+        }
+        else if (distanceArray[i][j] > 0) {
+          distanceArray[i][j] = getDistance(links[i], links[j]);
+          double expected = distanceArray[j][i];
+          double actual = distanceArray[i][j];
+          double err = Math.min( (expected / actual), (actual / expected));
+          int g = (int) (510 * err);
+          int r = Math.min(Math.abs(510 - g), 254);
+          g = Math.min(g, 254);
+          rect.setFill(Color.rgb(r, g, 0));
+        }
+        else if (i == j) {
+          rect.setFill(Color.BLACK);
         }
         else {
-          r.setFill(Color.WHITE);
+          rect.setFill(Color.rgb(0, 0, 230));
         }
-        contactMap.add(r, j, i);
+        
+        contactMap.add(rect, j, i);
       }
     }
-    score.setText("Score: " + newScore + " of " + totalScore);
+    score.setText(" " + newScore + " / " + totalScore);
   }
 
   @FXML
