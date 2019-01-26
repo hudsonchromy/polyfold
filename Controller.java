@@ -1,112 +1,4 @@
-import javafx.geometry.*;
-import javafx.event.*;
-import javafx.scene.*;
-import javafx.scene.control.*;
-import javafx.scene.image.*;
-import javafx.scene.input.*;
-import javafx.scene.layout.*;
-import javafx.scene.paint.*;
-import javafx.scene.shape.*;
-import javafx.scene.transform.*;
-import javafx.stage.*;
-import javafx.stage.FileChooser.*;
-import javafx.scene.text.*;
-import javafx.fxml.FXML;
-import java.util.*;
-import java.io.*;
-import java.util.zip.*;
-import java.text.*;
-
-import dihedralutils.*;
-
-public class Controller {
-  // global fields
-  final Group world = new Group();
-  final Group axes = new Group();
-  final Group sequence = new Group();
-  final PerspectiveCamera cam = new PerspectiveCamera(true);
-  final int INF = 1000000000;
-  final double EPS = 0.0000001;
-
-  // camera related fields
-  final int VIEWPORT_SIZE = 800;
-  //changed this from 100
-  final double CAM_INIT_DISTANCE = 100;
-  final double CAM_NEAR_CLIP = 0.1;
-  final double CAM_FAR_CLIP = 2000;
-  final double CAM_MIN_ZOOM = 30;
-  final double CAM_MAX_ZOOM = 1000;
-  final double AXIS_LENGTH = 20;
-  // note that camera move speed will vary with zoom level
-  double cam_speed = Math.abs(CAM_INIT_DISTANCE / 1000.0);
-  boolean isAutoZoom = false;
-
-  // color related fields
-  final PhongMaterial red = new PhongMaterial(Color.web("ec5f66"));
-  final PhongMaterial orange = new PhongMaterial(Color.web("f9ae58"));
-  final PhongMaterial yellow = new PhongMaterial(Color.web("f9d547"));
-  final PhongMaterial green = new PhongMaterial(Color.web("99c794"));
-  final PhongMaterial blue = new PhongMaterial(Color.web("6699cc"));
-  final PhongMaterial purple = new PhongMaterial(Color.web("c695c6"));
-  final PhongMaterial grey = new PhongMaterial(Color.web("d8dee9"));
-  final PhongMaterial white = new PhongMaterial(Color.WHITE);
-
-  // node related fields;
-  private Link[] links;
-  private Angular[] angles;
-  private Cartesian[] carts;
-
-  // the 2D UI
-  @FXML private BorderPane app;
-
-  // initializes subscene for 3D graphics
-  private SubScene initView(Group group) {
-    SubScene view = new SubScene(
-      group,
-      1024,
-      768,
-      true,
-      null
-    );
-    cam.setNearClip(CAM_NEAR_CLIP);
-    cam.setFarClip(CAM_FAR_CLIP);
-    cam.setTranslateZ(CAM_INIT_DISTANCE);
-    // makes camera movement behave as expected with positive x to the right,
-    // positive y upward, and positive z coming out of the screen
-    cam.setRotationAxis(Rotate.X_AXIS);
-    cam.setRotate(180);
-    view.setCamera(cam);
-    view.setFill(Color.web("1c2025"));
-    return view;
-  }
-
-  // keeps the 3D subscene dimensions the same as its parent pane
-  public void sizeView(SubScene scene) {
-    Pane parent = (Pane) scene.getParent();
-    scene.widthProperty().bind(parent.widthProperty());
-    scene.heightProperty().bind(parent.heightProperty());
-  }
-
-  @FXML
-  public void toggleAutoZoom() {
-    isAutoZoom = !isAutoZoom;
-    if (isAutoZoom) setCameraZoom();
-  }
-
-  // builds 3D axes for aiding orientation
-  public void buildAxes() {
-    final Box xAxis = new Box(AXIS_LENGTH, 0.1, 0.1);
-    final Box yAxis = new Box(0.1, AXIS_LENGTH, 0.1);
-    final Box zAxis = new Box(0.1, 0.1, AXIS_LENGTH);
-    xAxis.setMaterial(red);
-    yAxis.setMaterial(green);
-    zAxis.setMaterial(blue);
-    axes.getChildren().addAll(xAxis, yAxis, zAxis);
-    axes.setVisible(false);
-    world.getChildren().addAll(axes);
-  }
-
-  public void setCameraZoom() {
+ public void setCameraZoom() {
     if (links == null) return;
     // cam field of view is 30 degrees - pi / 6
     double tanTheta = Math.tan(Math.PI / 6.0);
@@ -383,6 +275,8 @@ public class Controller {
     taoSlider.setMax(PI - EPS);
     taoSlider.setValue(0);
     taoSlider.setDisable(true);
+    planarAngle.setText("");
+    dihedralAngle.setText("");
   }
 
   // updates a slider with the angle info of a give node
@@ -540,7 +434,7 @@ public class Controller {
 
   public void handleSliders() {
     // track slider value for theta
-    DecimalFormat df = new DecimalFormat("0.00");
+    DecimalFormat df = new DecimalFormat("0.0");
     thetaSlider.valueProperty().addListener((observable, oldVal, newVal) -> {
       if (selectedNode != null) {
         Link selectedLink = (Link) selectedNode.getParent();
@@ -550,7 +444,7 @@ public class Controller {
         end = newVal.doubleValue();
         if (index != 0 && index != angles.length-1) {
           angles[index].theta = end;
-          planarAngle.setText(df.format(thetaSlider.getValue()));
+          planarAngle.setText(df.format(thetaSlider.getValue() * 180/Math.PI) + "\u00b0");
           links = buildLinks(index);
           buildSequence();
         }
@@ -562,7 +456,7 @@ public class Controller {
       Link selectedLink = (Link) selectedNode.getParent();
       int id = selectedLink.id;
       history.offerLast(new Undo(id, 'p', thetaSlider.getValue()));
-      redo.clear();
+      redoStack.clear();
     });
 
     thetaSlider.setOnMouseReleased((MouseEvent e) -> {
@@ -579,7 +473,7 @@ public class Controller {
         end = newVal.doubleValue();
         if (index != 0 && index != angles.length-2 && index != angles.length-1) {
           angles[index].tao = end;
-          dihedralAngle.setText(df.format(taoSlider.getValue()));
+          dihedralAngle.setText(df.format(taoSlider.getValue() * 180/Math.PI) + "\u00b0");
           links =  buildLinks(index);
           buildSequence();
         }
@@ -591,7 +485,7 @@ public class Controller {
       Link selectedLink = (Link) selectedNode.getParent();
       int id = selectedLink.id;
       history.offerLast(new Undo(id, 'd', taoSlider.getValue()));
-      redo.clear();
+      redoStack.clear();
     });
 
     taoSlider.setOnMouseReleased((MouseEvent e) -> {
@@ -722,8 +616,9 @@ public class Controller {
 
   // undo redo fields - implements Queue interface but using as stack
   LinkedList<Undo> history = new LinkedList<Undo>();
-  LinkedList<Undo> redo = new LinkedList<Undo>();
+  LinkedList<Undo> redoStack = new LinkedList<Undo>();
 
+  @FXML
   public void undo() {
     Undo u = history.pollLast();
     // no values left in undo history - deselect everything
@@ -734,9 +629,10 @@ public class Controller {
       }
       return;
     }
-
-    redo.offerLast(u);
+    System.out.println("un");
+    System.out.println(u);
     if (u.angleType == 'p') {
+      redoStack.offerLast(new Undo(u.id, 'p', thetaSlider.getValue()));
       angles[u.id].theta = u.angle;
       links = buildLinks(u.id);
       buildSequence();
@@ -745,6 +641,7 @@ public class Controller {
       selectedNode.setMaterial(green);
     }
     else {
+      redoStack.offerLast(new Undo(u.id, 'd', thetaSlider.getValue()));
       angles[u.id].tao = u.angle;
       links = buildLinks(u.id);
       buildSequence();
@@ -752,32 +649,37 @@ public class Controller {
       selectedNode = links[u.id].node;
       selectedNode.setMaterial(green);
     }
+    updateScore();
   }
 
-  // CURRENTLY NOT WORKING
+  // CURRENTLY KINDA WORKING
 
-  // public void redo() {
-  //   Undo r = redo.pollLast();
-  //   if (r != null) {
-  //     history.offerLast(r);
-  //     if (r.angleType == 'p') {
-  //       angles[r.id].theta = r.angle;
-  //       links = buildLinks(r.id);
-  //       buildSequence();
-  //       thetaSlider.setValue(r.angle);
-  //       selectedNode = links[r.id].node;
-  //       selectedNode.setMaterial(green);
-  //     }
-  //     else {
-  //       angles[r.id].tao = r.angle;
-  //       links = buildLinks(r.id);
-  //       buildSequence();
-  //       taoSlider.setValue(r.angle);
-  //       selectedNode = links[r.id].node;
-  //       selectedNode.setMaterial(green);
-  //     }
-  //   }
-  // }
+  public void redo() {
+    Undo r = redoStack.pollLast();
+    if (r != null) {
+      history.offerLast(r);
+      if (r.angleType == 'p') {
+        System.out.println("re");
+        System.out.println(r);
+        angles[r.id].theta = r.angle;
+        links = buildLinks(r.id);
+        buildSequence();
+        thetaSlider.setValue(r.angle);
+        selectedNode = links[r.id].node;
+        selectedNode.setMaterial(green);
+        history.offerLast(new Undo(r.id, 'p', thetaSlider.getValue()));
+      }
+      else {
+        angles[r.id].tao = r.angle;
+        links = buildLinks(r.id);
+        buildSequence();
+        taoSlider.setValue(r.angle);
+        selectedNode = links[r.id].node;
+        selectedNode.setMaterial(green);
+        history.offerLast(new Undo(r.id, 'd', taoSlider.getValue()));
+      }
+    }
+  }
 
   // contact map fields
   @FXML private GridPane contactMap;
@@ -858,6 +760,8 @@ public class Controller {
 
   //ProgressBar progressBar = new ProgressBar(0);
 
+
+  //divide the score of it by the multiples it is from it
   public void updateScore() {
     if (links == null) return;
     if (!contactMapLoaded) return;
@@ -866,7 +770,7 @@ public class Controller {
       for (int j = 0; j < i; j++) {
         double expected = distanceArray[j][i];
         double actual = getDistance(links[i], links[j]);
-        if(actual < 3.7) {
+        if (actual < 3.7) {
           undo();
           return;
         }
