@@ -1,5 +1,5 @@
 #backdrop {
-  -fx-background-color: #313842;
+  -fx-background-color: #222222;
   -fx-min-width: 1024;
   -fx-min-height: 768;
 }
@@ -7,6 +7,11 @@
 .right {
   -fx-padding: 6;
   -fx-alignment: top-center;
+}
+
+#toolbarImages {
+  -fx-padding: 31 1 31 1;
+  -fx-alignment: bottom-right;
 }
 
 #menubar {
@@ -17,7 +22,7 @@
 }
 
 #move-panel {
-  -fx-background-color: #5b6678;
+  -fx-background-color: #444444;
   -fx-background-radius: 4;
   -fx-padding: 6;
   -fx-spacing: 10;
@@ -48,6 +53,13 @@
   -fx-font-weight: bold;
   -fx-padding: 8 0 4 0;
   -fx-alignment: center;
+}
+
+.proteinName-label {
+  -fx-font-family: sans-serif;
+  -fx-font-size: 24;
+  -fx-alignment: CENTER-RIGHT;
+  -fx-fill: white;
 }
 
 .move-label {
@@ -109,20 +121,17 @@
 }
 
 #toolbar {
-  -fx-background-color: #4c5562;
-  -fx-padding: 6;
+  -fx-background-color: #444444;
+  -fx-padding: 4 14 4 14;
   -fx-min-width: 1024;
   -fx-min-height: 40;
   -fx-max-height: 40;
   -fx-spacing: 10;
-  -fx-alignment: center-left;
+  -fx-alignment: center;
 }
 
 .osx-button {
-  -fx-background-color:
-    rgba(0,0,0,0.08),
-    linear-gradient(#9a9a9a, #909090),
-    linear-gradient(white 0%, #f3f3f3 50%, #ececec 51%, #f2f2f2 100%);
+  -fx-background-color: #FFFFFF;
   -fx-background-insets: 0 0 -1 0,0,1;
   -fx-background-radius: 5,5,4;
   -fx-padding: 3 15 3 15;
@@ -147,10 +156,7 @@
 }
 
 .osx-button:selected {
-  -fx-background-color:
-    rgba(0,0,0,0.08),
-    linear-gradient(#909090, #3f4754),
-    linear-gradient(#b4f1b9 0%, #99c794 50%, #5e7f5e 100%);
+  -fx-background-color: #009900;
   -fx-background-insets: 0 0 -1 0,0,1;
   -fx-background-radius: 5,5,4;
   -fx-padding: 3 15 3 15;
@@ -161,7 +167,45 @@
 
 .progress-bar {
   -fx-accent: black;
-  -fx-box-border: black;
-  -fx-alignment:right;
+  -fx-box-border: green;
+  -fx-alignment: right;
+  -fx-indeterminate-bar-length: 61;
 }
 
+.undoButton {
+  -fx-background-color: #FFFFFF;
+  -fx-background-insets: 0 0 -1 0,0,1;
+  -fx-background-radius: 5,5,4;
+  -fx-padding: 3 15 3 15;
+  -fx-graphic: "assets/undo.png";
+  -fx-max-height: 28px;
+  -fx-max-width: 20px;
+}
+
+.redoButton {
+  -fx-background-color: #FFFFFF;
+  -fx-background-insets: 0 0 -1 0,0,1;
+  -fx-background-radius: 5,5,4;
+  -fx-padding: 3 15 3 15;
+  -fx-graphic: "assets/redo.png";
+  -fx-max-height: 28px;
+  -fx-max-width: 20px;
+}
+
+.infoButton {
+  -fx-background-color: #FFFFFF;
+  -fx-background-insets: 0 0 -1 0,0,1;
+  -fx-background-radius: 5,5,4;
+  -fx-padding: 3 15 3 15;
+  -fx-graphic: "assets/info.png";
+}
+
+#rightTools {
+  -fx-alignment: center-right;
+  -fx-pref-width: 1000;
+}
+
+#leftTools {
+  -fx-alignment: center-left;
+  -fx-pref-width: 1000;
+}
