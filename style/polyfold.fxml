@@ -28,7 +28,7 @@
                 <GridPane fx:id="contactMap" id="contact-map"/>
                 <HBox styleClass="score-label">
                   <ProgressBar fx:id="progressBar" progress="0.0" styleClass="progress-bar" />
-                  <Text fx:id="score"/>
+                  <Text fx:id="score" text = " -- / --"/>
                 </HBox>
               </children>
             </VBox>
@@ -99,6 +99,7 @@
   </right>
 
   <bottom>
+
   </bottom>
 
   <center>
@@ -118,33 +119,38 @@
             <Menu text="Edit">
               <items>
                 <MenuItem text="Undo" onAction="#undo" accelerator="Shortcut+z"/>
-                <MenuItem text="Redo" accelerator="Shortcut+Shift+z"/>
-              </items>
-            </Menu>
-            <Menu text="View">
-              <items>
-                <MenuItem text="Show Toolbar"/>
-                <MenuItem text="Hide Toolbar"/>
+                <MenuItem text="Redo" accelerator="Shortcut+Shift+z" onAction="#redo"/>
               </items>
             </Menu>
             <Menu text="Window">
               <items>
-                <MenuItem text="Minimize" onAction="#minimizeButton"/>
-                <MenuItem text="Full Screen" onAction="#fullScreenButton"/>
+                <MenuItem text="Minimize" onAction="#minimizeButton" accelerator="Shortcut+m"/>
+                <MenuItem text="Full Screen" onAction="#fullScreenButton" accelerator="Shortcut+f"/>
               </items>
             </Menu>
             <Menu text="Help">
               <items>
                 <MenuItem text="About"/>
-                <MenuItem text="License"/>
               </items>
             </Menu>
           </menus>
         </MenuBar>
         <HBox id="toolbar">
           <children>
-            <ToggleButton styleClass="osx-button" text="Auto-Zoom" onAction="#toggleAutoZoom"/>
-            <Text fx:id="proteinName" styleClass="proteinName-label" text=""/>
+            <HBox id="leftTools">
+              <children>
+                <ToggleButton styleClass="osx-button" text="Auto-Zoom" onAction="#toggleAutoZoom"/>
+              </children>
+            </HBox>
+            <HBox id="rightTools">
+              <children>
+                <Button styleClass="undoButton" onAction="#undo" />
+                <Text text=" "/>
+                <Button styleClass="redoButton" onAction="#redo"/>
+                <Text text=" "/>
+                <Button styleClass="infoButton"/>
+              </children>
+            </HBox>
           </children>
         </HBox>
       </children>
