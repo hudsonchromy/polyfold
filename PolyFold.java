@@ -7,6 +7,9 @@ import java.io.IOException;
 
 public class PolyFold extends Application {
 
+  // allows global access to stage
+  private static Stage globalStage;
+
   @Override
   public void start(Stage stage) throws IOException {
     // loads xml
@@ -15,6 +18,8 @@ public class PolyFold extends Application {
     // event controller
     Controller c = new Controller();
     loader.setController(c);
+
+    globalStage = stage;
 
     // build scene
     Parent root = loader.load();
@@ -31,6 +36,23 @@ public class PolyFold extends Application {
     // set stage size to be minimum 1024 x 768
     stage.setMinWidth(stage.getWidth());
     stage.setMinHeight(stage.getHeight());
+  }
+
+  // takes a String and sets the stage title
+  public static void setPrimaryStageTitle(String newTitle) {
+    globalStage.setTitle(newTitle);
+  }
+
+  public static void minimizeWindow() {
+    globalStage.setIconified(true);
+  }
+
+  public static void makeFullScreen() {
+    globalStage.setFullScreen(true);
+  }
+
+  public static boolean checkFullScreen() {
+    return globalStage.isFullScreen();
   }
 
   // ignored in javafx apps

@@ -23,11 +23,12 @@
           <children>
             <VBox styleClass="move-pane">
               <children>
-                <Text styleClass="move-label" text="CONTACT MAP"/>
+                <Text styleClass="move-label" text="DISTANCE MAP"/>
                 <Separator styleClass="separator"/>
-                <GridPane fx:id="contactMap" id="contact-map"/>
+                <GridPane fx:id="distanceMap" id="contact-map"/>
                 <HBox styleClass="score-label">
-                  <Text fx:id="score"/>
+                  <ProgressBar fx:id="progressBar" progress="0.0" styleClass="progress-bar" />
+                  <Text fx:id="score" text = " -- / --"/>
                 </HBox>
               </children>
             </VBox>
@@ -51,7 +52,10 @@
                   </children>
                 </HBox>
                 <Separator styleClass="separator"/>
-                <Text styleClass="move-label" text="PLANAR ANGLE"/>
+                <HBox styleClass = "move-hbox">
+                  <Text fx:id = "thetaDegreeText" styleClass = "move-label" text = ""/>
+                  <Text styleClass="move-label" text=" PLANAR ANGLE"/>
+                </HBox>
                 <HBox styleClass="move-hbox">
                   <children>
                     <ImageView fx:id="zeroPNG">
@@ -67,7 +71,10 @@
                     </ImageView>
                   </children>
                 </HBox>
-                <Text styleClass="move-label" text="DIHEDRAL ANGLE"/>
+                <HBox styleClass = "move-hbox">
+                  <Text fx:id = "taoDegreeText" styleClass = "move-label" text = ""/>
+                  <Text styleClass="move-label" text=" DIHEDRAL ANGLE"/>
+                </HBox>
                 <HBox styleClass="move-hbox">
                   <children>
                     <ImageView fx:id="negPiPNG">
@@ -92,6 +99,7 @@
   </right>
 
   <bottom>
+
   </bottom>
 
   <center>
@@ -111,32 +119,38 @@
             <Menu text="Edit">
               <items>
                 <MenuItem text="Undo" onAction="#undo" accelerator="Shortcut+z"/>
-                <MenuItem text="Redo" accelerator="Shortcut+Shift+z"/>
-              </items>
-            </Menu>
-            <Menu text="View">
-              <items>
-                <MenuItem text="Show Toolbar"/>
-                <MenuItem text="Hide Toolbar"/>
+                <MenuItem text="Redo" accelerator="Shortcut+Shift+z" onAction="#redo"/>
               </items>
             </Menu>
             <Menu text="Window">
               <items>
-                <MenuItem text="Minimize"/>
-                <MenuItem text="Full Screen"/>
+                <MenuItem text="Minimize" onAction="#minimize" accelerator="Shortcut+m"/>
+                <MenuItem text="Full Screen" onAction="#fullScreen" accelerator="Shortcut+f"/>
               </items>
             </Menu>
             <Menu text="Help">
               <items>
                 <MenuItem text="About"/>
-                <MenuItem text="License"/>
               </items>
             </Menu>
           </menus>
         </MenuBar>
         <HBox id="toolbar">
           <children>
-            <ToggleButton styleClass="osx-button" text="Auto-Zoom" onAction="#toggleAutoZoom"/>
+            <HBox id="leftTools">
+              <children>
+                <ToggleButton styleClass="osx-button" text="Auto-Zoom" onAction="#toggleAutoZoom"/>
+              </children>
+            </HBox>
+            <HBox id="rightTools">
+              <children>
+                <Button styleClass="undoButton" onAction="#undo" />
+                <Text text=" "/>
+                <Button styleClass="redoButton" onAction="#redo"/>
+                <Text text=" "/>
+                <Button styleClass="infoButton"/>
+              </children>
+            </HBox>
           </children>
         </HBox>
       </children>

@@ -20,4 +20,7 @@ public class Undo {
   public double getAngle() {
     return angle;
   }
+  public String toString() {
+    return("id " + id + "\nangle type " + angleType + "\nangle " + angle);
+  }
 }

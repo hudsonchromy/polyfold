@@ -1,5 +1,6 @@
-import javafx.geometry.*;
 import javafx.event.*;
+import javafx.fxml.FXML;
+import javafx.geometry.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
@@ -7,13 +8,14 @@ import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.*;
 import javafx.scene.shape.*;
+import javafx.scene.text.*;
 import javafx.scene.transform.*;
 import javafx.stage.*;
 import javafx.stage.FileChooser.*;
-import javafx.scene.text.*;
-import javafx.fxml.FXML;
-import java.util.*;
+
 import java.io.*;
+import java.text.*;
+import java.util.*;
 import java.util.zip.*;
 
 import dihedralutils.*;
@@ -29,7 +31,6 @@ public class Controller {
 
   // camera related fields
   final int VIEWPORT_SIZE = 800;
-  //changed this from 100
   final double CAM_INIT_DISTANCE = 100;
   final double CAM_NEAR_CLIP = 0.1;
   final double CAM_FAR_CLIP = 2000;
@@ -75,7 +76,7 @@ public class Controller {
     cam.setRotationAxis(Rotate.X_AXIS);
     cam.setRotate(180);
     view.setCamera(cam);
-    view.setFill(Color.web("1c2025"));
+    view.setFill(Color.web("1a1a1a"));
     return view;
   }
 
@@ -108,7 +109,7 @@ public class Controller {
   public void setCameraZoom() {
     if (links == null) return;
     // cam field of view is 30 degrees - pi / 6
-    double tanTheta = Math.tan(Math.PI / 6.0);
+    double tanTheta = Math.tan(PI / 6.0);
     // keep track of max zoom level needed to see all nodes
     double maxZoom, maxLeft, maxRight, maxUp, maxDown;
     maxZoom = -1;
@@ -118,7 +119,7 @@ public class Controller {
     maxUp = -INF;
     maxDown = INF;
 
-    // finds max left, max right, max up, and max down for calculate camera field of view
+    // finds max left, max right, max up, and max down to calculate camera field of view
     for (Link l : links) {
       // get position of sphere
       double x, y, xZoom, yZoom;
@@ -212,7 +213,6 @@ public class Controller {
   // helper function for building links - gets all angles for .aa file
   public void setAngularArray(String content) {
     if (content == null) {
-      // aminoAcidError();
       return;
     }
     int n = content.length();
@@ -223,23 +223,24 @@ public class Controller {
       a.aa = content.charAt(i);
       // first and last node have no theta
       if (i == 0 || i == n-1) {
-        a.theta = 2 * Math.PI;
+        a.theta = 2 * PI;
       }
       else {
-        a.theta = 110.0 * Math.PI / 180.0;
+        a.theta = 110.0 * PI / 180.0;
       }
       // first, second to last, and last nodes have no tao
       if (i == 0 || i == n-1 || i == n-2) {
-        a.tao = 2 * Math.PI;
+        a.tao = 2 * PI;
       }
       else {
-        a.tao = -150.0 * Math.PI / 180.0;
+        a.tao = -150.0 * PI / 180.0;
       }
       angles[i] = a;
     }
   }
 
   public void structureAngularArray(String content) {
+    // .ss has different number of characters than there are links
     if (content == null || content.length() != links.length) return;
     int n = links.length;
     for (int i = 0; i < angles.length; i++) {
@@ -257,10 +258,13 @@ public class Controller {
   public void setLinkArray() {
     int n = carts.length;
     links = new Link[n];
+    // 
     boolean isEndNode = false;
     for (int i = 0; i < n; i++) {
+      //System.out.println(i);
       Cartesian c = carts[i];
       if (i == carts.length-1) isEndNode = true;
+      // link constructor sets rod length to 0 if isEndNode
       Link l = new Link(c.ca.x, c.ca.y, c.ca.z, isEndNode);
       l.id = i;
       l.aa = angles[i].aa;
@@ -298,6 +302,7 @@ public class Controller {
   public Link[] buildLinks(String content) {
     setAngularArray(content);
     // convert to cartesion points
+    //carts = Cartesian[];
     carts = DihedralUtility.angles2Carts(angles);
     setLinkArray();
     connectLinkRods();
@@ -356,8 +361,16 @@ public class Controller {
   public String getExtension(File f) {
     String name = f.getName();
     int index = name.lastIndexOf(".");
+    // no extension
     if (index == -1) return null;
     return name.substring(index);
+  }
+
+  public String getBaseName(File f) {
+    String name = f.getName();
+    int index = name.lastIndexOf(".");
+    if (index == -1) return null;
+    return name.substring(0, index);
   }
 
   // UI
@@ -367,20 +380,23 @@ public class Controller {
   @FXML private ImageView piPNG2;
   @FXML private ImageView negPiPNG;
   @FXML private ImageView zeroPNG;
+  @FXML private ProgressBar progressBar;
 
   private final double PI = Math.PI;
 
   // disables sliders and puts the selector halfway
   public void resetSliders() {
-    // epsilon defined to allow for small precision error in floating point
+    // epsilon defined to allow for small error in floating point precision
     thetaSlider.setMin(0 + EPS);
     thetaSlider.setMax(PI - EPS);
-    thetaSlider.setValue(PI/2.0);
+    thetaSlider.setValue(PI / 2.0);
     thetaSlider.setDisable(true);
     taoSlider.setMin(-PI + EPS);
     taoSlider.setMax(PI - EPS);
     taoSlider.setValue(0);
     taoSlider.setDisable(true);
+    thetaDegreeText.setText("");
+    taoDegreeText.setText("");
   }
 
   // updates a slider with the angle info of a give node
@@ -533,17 +549,25 @@ public class Controller {
     });
   }
 
+  int indexSelected;
+  @FXML private Text thetaDegreeText; 
+  @FXML private Text taoDegreeText;
+
   public void handleSliders() {
     // track slider value for theta
+    DecimalFormat df = new DecimalFormat("0.0");
     thetaSlider.valueProperty().addListener((observable, oldVal, newVal) -> {
+      updateScore();
       if (selectedNode != null) {
         Link selectedLink = (Link) selectedNode.getParent();
         int index = selectedLink.id;
+        indexSelected = index;
         double start, end;
         start = oldVal.doubleValue();
         end = newVal.doubleValue();
         if (index != 0 && index != angles.length-1) {
           angles[index].theta = end;
+          thetaDegreeText.setText(df.format(thetaSlider.getValue() * 180 / PI) + "\u00b0");
           links = buildLinks(index);
           buildSequence();
         }
@@ -554,24 +578,28 @@ public class Controller {
     thetaSlider.setOnMousePressed((MouseEvent e) -> {
       Link selectedLink = (Link) selectedNode.getParent();
       int id = selectedLink.id;
-      history.offerLast(new Undo(id, 'p', thetaSlider.getValue()));
-      redo.clear();
+      undoStack.offerLast(new Undo(id, 'p', thetaSlider.getValue()));
+      redoStack.clear();
     });
 
+    // TODO: try to get this in real time
     thetaSlider.setOnMouseReleased((MouseEvent e) -> {
       updateScore();
+      checkClash();
     });
 
     // track slider change
     taoSlider.valueProperty().addListener((observable, oldVal, newVal) -> {
       if (selectedNode != null) {
-        Link head = (Link) selectedNode.getParent();
-        int index = head.id;
+        updateScore();
+        Link selectedLink = (Link) selectedNode.getParent();
+        int index = selectedLink.id;
         double start, end;
         start = oldVal.doubleValue();
         end = newVal.doubleValue();
         if (index != 0 && index != angles.length-2 && index != angles.length-1) {
           angles[index].tao = end;
+          taoDegreeText.setText(df.format(taoSlider.getValue() * 180 / PI) + "\u00b0");
           links =  buildLinks(index);
           buildSequence();
         }
@@ -582,132 +610,138 @@ public class Controller {
     taoSlider.setOnMousePressed((MouseEvent e) -> {
       Link selectedLink = (Link) selectedNode.getParent();
       int id = selectedLink.id;
-      history.offerLast(new Undo(id, 'd', taoSlider.getValue()));
-      redo.clear();
+      undoStack.offerLast(new Undo(id, 'd', taoSlider.getValue()));
+      redoStack.clear();
     });
 
     taoSlider.setOnMouseReleased((MouseEvent e) -> {
       updateScore();
+      checkClash();
     });
   }
 
-  boolean aaFileRead = false;
+  @FXML
+  private void minimize(ActionEvent e) {
+    PolyFold.minimizeWindow();
+  }
+
+  @FXML
+  private void fullScreen(ActionEvent e) {
+    PolyFold.makeFullScreen();
+    switchFull();
+  }
   
-  // open an amino acid or secondary structure file
+  boolean distanceMapLoaded = false;
+
   @FXML
   private void openFile(ActionEvent e) throws IOException {
-  FileChooser fileModal = new FileChooser();
-  fileModal.setTitle("Open Resource File");
-  fileModal.getExtensionFilters().addAll(
-    new ExtensionFilter("ZIP Archive \".zip\"", "*.zip"),
-    new ExtensionFilter("Protein Data Bank \".pdb\"", "*.pdb")
-  );
-  File f = fileModal.showOpenDialog(app.getScene().getWindow());
-  LinkedList<String> filesInZip = new LinkedList<String>();
-  if (f != null) {
-      String[] fileTypeFrequency = new String[3];
-      // 0 = .aa | 1 = .rr | 2 = .ss
+    FileChooser fileModal = new FileChooser();
+    fileModal.setTitle("Open Resource File");
+    fileModal.getExtensionFilters().addAll(
+      new ExtensionFilter("ZIP Archive \".zip\"", "*.zip")
+    );
+
+    File f = fileModal.showOpenDialog(app.getScene().getWindow());
+    LinkedList<File> filesInZip = new LinkedList<File>();
+    if (f != null) {
       String extension = getExtension(f);
       if (extension.equals(".zip")) {
-        filesInZip = unZip(f.getCanonicalPath());
-        String aa = null;
-        for (String currentFile: filesInZip) {
-          if (currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".aa")) {
-            if (aa == null) {
-              aa = currentFile;
-            }
-            else {
-            //if there is already an aa found
-              aa = null;
-              System.out.println("ERROR: There is more than one .aa file");
-            }
-          }
-        }
-        if (aa != null) {
-        //if there was one .aa file found
-          //set aa
-          secondaryString = null;
-          File fileAdding = new File(aa);
-          initSequence(fileAdding);
-          if (selectedNode != null) {
-            deselect(selectedNode);
-          }
-          for (String currentFile: filesInZip) {
-          //look for matching .ss and .rr
-            if(currentFile.substring(0, currentFile.length() - 3).equals(currentFile.substring(0, currentFile.length() - 3))) {
-              if(currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".ss")) {
-                //set .ss
-                File ssAdding = new File(currentFile);
-                applySecondaryStructure(ssAdding);
-                if (selectedNode != null) {
-                  deselect(selectedNode);
-                }
-                //updateScore();
-              }
-              if(currentFile.substring(currentFile.length() - 3, currentFile.length()).equals(".rr")) {
-                //set .rr
-                File rrAdding = new File(currentFile);
-                generateContactMap(rrAdding);
-                updateScore();
-              }
-            }
-          }
-        }
+        filesInZip = unzip(f);
       }
+      String proteinName = checkFileProteinMatch(filesInZip);
+      File[] fileTypes = detectFileTypes(filesInZip, proteinName);
+      if (proteinName != null) {
+        File aa = fileTypes[0];
+        File ss = fileTypes[1];
+        File pdb = fileTypes[2];
+        initSequence(aa);
+        applySecondaryStructure(ss);
+        generateDistanceMap(pdb);
+        PolyFold.setPrimaryStageTitle("PoltFold (Alpha Version) " + proteinName);
+        return;
+      }
+      // error dialog
     }
   }
 
-  public LinkedList<String> unZip(String zipFile){
-    LinkedList<String> filesExtracted = new LinkedList<String>();
-    byte[] buffer = new byte[1024];
-    String outputFolder = zipFile.substring(0, zipFile.length()-4);
-    try { 
-      //create output directory is not exists
-      File folder = new File(outputFolder);
-      if (!folder.exists()) {
-        folder.mkdir();
+  public String checkFileProteinMatch(LinkedList<File> fileTypes) {
+    String proteinName;
+    for (File file : fileTypes) {
+      if (getExtension(file).equals(".aa")) {
+        return(getBaseName(file));
       }
-      //get the zip file content
-      ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
-      //get the zipped file list entry
-      ZipEntry ze = zis.getNextEntry();
-      while (ze != null) {
-        if (!ze.getName().matches("[-_. A-Za-z0-9]+\\.(aa|ss|rr)")) {
-            ze = zis.getNextEntry();
-            continue;
-        }  
-        String fileName = ze.getName();
-        File newFile = new File(outputFolder + File.separator + fileName);
-        filesExtracted.offer(newFile.getCanonicalPath()); 
-        //create all non exists folders
-        new File(newFile.getParent()).mkdirs();  
-        FileOutputStream fos = new FileOutputStream(newFile);             
-        int len;
-        while ((len = zis.read(buffer)) > 0) {
-          fos.write(buffer, 0, len);
-        }
-        fos.close();   
-        ze = zis.getNextEntry();
-      }
-      zis.closeEntry();
-      zis.close();
-    } 
-    catch (IOException ex) {
-       ex.printStackTrace(); 
-    } 
-    finally {
-      return filesExtracted;
     }
-   }    
+    return null;
+  }
+
+  public File[] detectFileTypes(LinkedList<File> files, String proteinName) {
+    // 0 - .aa, 1 -.ss, 2 -.pdb
+    File[] fileTypes= new File[3];
+    for (File file : files) {
+      String baseName = getBaseName(file);
+      String extension = getExtension(file);
+      if (extension.equals(".aa") && baseName.equals(proteinName)) {
+        if (fileTypes[0] != null) return null;
+        fileTypes[0] = file;
+      }
+      else if (extension.equals(".ss") && baseName.equals(proteinName)) {
+        if (fileTypes[1] != null) return null;
+        fileTypes[1] = file;
+      }
+      else {
+        if (fileTypes[2] != null && baseName.equals(proteinName)) return null;
+        fileTypes[2] = file;
+      }
+    }
+    return fileTypes;
+  }
+
+  public LinkedList<File> unzip(File zip) throws IOException {
+    LinkedList<File> extracted = new LinkedList<File>();
+    byte[] buffer = new byte[1024];
+    String directory = createOutputDirectory(zip);
+
+    ZipInputStream zis = new ZipInputStream(new FileInputStream(zip));
+    while (true) {
+      ZipEntry ze = zis.getNextEntry();
+      if (ze == null) break;
+      if (!ze.getName().matches("[-_. A-Za-z0-9]+\\.(aa|ss|pdb)")) {
+        continue;
+      }
+      String fileName = ze.getName();
+      File f = new File(directory + File.separator + fileName);
+      extracted.offer(f);
+      FileOutputStream fos = new FileOutputStream(f);
+      int bytesWritten;
+      while ((bytesWritten = zis.read(buffer)) > 0) {
+        fos.write(buffer, 0, bytesWritten);
+      }  
+      fos.close();
+    }
+    zis.close();
+    for (File file : extracted) {
+    }
+    return extracted;
+  }
+
+  public String createOutputDirectory(File zip) throws IOException {
+    String directory = getBaseName(zip);
+    File f = new File(directory);
+    if (!f.exists()) {
+      f.mkdir();
+    }
+    return f.getCanonicalPath();
+  }   
 
 
   // undo redo fields - implements Queue interface but using as stack
-  LinkedList<Undo> history = new LinkedList<Undo>();
-  LinkedList<Undo> redo = new LinkedList<Undo>();
+  LinkedList<Undo> undoStack = new LinkedList<Undo>();
+  LinkedList<Undo> redoStack = new LinkedList<Undo>();
 
+  @FXML
   public void undo() {
-    Undo u = history.pollLast();
-    // no values left in undo history - deselect everything
+    Undo u = undoStack.pollLast();
+    // no values left in undo undoStack - deselect everything
     if (u == null) {
       if (selectedNode != null) {
         selectedNode.setMaterial(red);
@@ -715,17 +749,18 @@ public class Controller {
       }
       return;
     }
-
-    redo.offerLast(u);
     if (u.angleType == 'p') {
+      redoStack.offerLast(new Undo(indexSelected, 'p', thetaSlider.getValue()));
+      thetaSlider.setValue(u.angle);
       angles[u.id].theta = u.angle;
       links = buildLinks(u.id);
       buildSequence();
-      thetaSlider.setValue(u.angle);
       selectedNode = links[u.id].node;
+      indexSelected = u.id;
       selectedNode.setMaterial(green);
     }
     else {
+      redoStack.offerLast(new Undo(indexSelected, 'p', taoSlider.getValue()));
       angles[u.id].tao = u.angle;
       links = buildLinks(u.id);
       buildSequence();
@@ -733,80 +768,156 @@ public class Controller {
       selectedNode = links[u.id].node;
       selectedNode.setMaterial(green);
     }
+    updateScore();
   }
 
-  // CURRENTLY NOT WORKING
+  // CURRENTLY WORKING
 
-  // public void redo() {
-  //   Undo r = redo.pollLast();
-  //   if (r != null) {
-  //     history.offerLast(r);
-  //     if (r.angleType == 'p') {
-  //       angles[r.id].theta = r.angle;
-  //       links = buildLinks(r.id);
-  //       buildSequence();
-  //       thetaSlider.setValue(r.angle);
-  //       selectedNode = links[r.id].node;
-  //       selectedNode.setMaterial(green);
-  //     }
-  //     else {
-  //       angles[r.id].tao = r.angle;
-  //       links = buildLinks(r.id);
-  //       buildSequence();
-  //       taoSlider.setValue(r.angle);
-  //       selectedNode = links[r.id].node;
-  //       selectedNode.setMaterial(green);
-  //     }
-  //   }
-  // }
+  public void redo() {
+    Undo r = redoStack.pollLast();
+    if (r != null) {
+      undoStack.offerLast(r);
+      if (r.angleType == 'p') {
+        angles[r.id].theta = r.angle;
+        links = buildLinks(r.id);
+        buildSequence();
+        thetaSlider.setValue(r.angle);
+        selectedNode = links[r.id].node;
+        selectedNode.setMaterial(green);
+        undoStack.offerLast(new Undo(r.id, 'p', thetaSlider.getValue()));
+      }
+      else {
+        angles[r.id].tao = r.angle;
+        links = buildLinks(r.id);
+        buildSequence();
+        taoSlider.setValue(r.angle);
+        selectedNode = links[r.id].node;
+        selectedNode.setMaterial(green);
+        undoStack.offerLast(new Undo(r.id, 'd', taoSlider.getValue()));
+      }
+    }
+  }
+
+  public double[] parsePDBLine(String line) {
+    double[] coord = new double[3];
+    // x, y, z
+    coord[0] = Double.parseDouble(line.substring(31, 38).trim());
+    coord[1] = Double.parseDouble(line.substring(39, 46).trim());
+    coord[2] = Double.parseDouble(line.substring(47, 54).trim());
+    return coord;
+  }
 
   // contact map fields
-  @FXML private GridPane contactMap;
+  @FXML private GridPane distanceMap;
   @FXML private Text score;
 
-  private boolean[][] isContact;
-  private int width;
+  private double[][] distanceArray;
   private int side;
   private double cellSize;
   private int totalScore;
+  private double maxDistanceAA; 
+  private double[][] pdbExpectedCoords;
 
-  public void generateContactMap(File f) throws IOException {
+  public void generateDistanceMap(File f) throws IOException {
     // add error handling
+    distanceMap.getChildren().clear();
     if (f == null || links == null) {
-      contactMap.getChildren().clear();
-      contactMap.getChildren().add(new Rectangle(280, 280, Color.WHITE));
+      distanceMap.getChildren().add(new Rectangle(280, 280, Color.WHITE));
       return;
     }
-
-    width = 240;
+    int width = 240;
     side = links.length;
     cellSize = (double) width / side;
-    isContact = new boolean[side][side];
-    BufferedReader br = new BufferedReader(new FileReader(f));
-
-    while (true) {
-      String line = br.readLine();
-      if (line == null) break;
-      StringTokenizer st = new StringTokenizer(line);
-      int i = Integer.parseInt(st.nextToken()) - 1;
-      int j = Integer.parseInt(st.nextToken()) - 1;
-      isContact[i][j] = true;
+    distanceArray = new double[side][side];
+    readPDB(f);
+    double totalScore = 0.0;
+    for (int i = 0; i < side; i++) {
+      for (int j = 0; j < side; j++) {
+        double dist;
+        if (i < j) {
+          dist = getDistance(pdbExpectedCoords[i], pdbExpectedCoords[j]);
+        }
+        else if (i > j) {
+          dist = getDistance(links[i], links[j]);
+        }
+        else {
+          // identity pairs
+          dist = -1;
+        }
+        distanceArray[i][j] = dist;
+      }
     }
-    totalScore = 0;
+    buildDistanceMap();
+    updateScore();
+  }
+
+  public void switchFull() {
+    int width;
+    if(PolyFold.checkFullScreen()) {
+      width = 340;
+    }
+    else {
+      width = 240;
+    }
+    cellSize = (double) width / side;
+    if(rects[0][0].getWidth() - cellSize > EPS) return;
+    for (int i = 0; i < side; i++) {
+      for (int j = 0; j < side; j++) {
+        rects[i][j].setWidth(cellSize);
+        rects[i][j].setHeight(cellSize);
+      }
+    }
+    updateScore();
+  }
+
+  public void readPDB(File f) throws IOException {
+    pdbExpectedCoords = new double[links.length][3];
+    BufferedReader br = new BufferedReader(new FileReader(f));
+    for (int i = 0; i < links.length; i++) {
+      String line = br.readLine();
+      double[] pdbInfo = parsePDBLine(line);
+      for (int j = 0; j < 3; j++) {
+        pdbExpectedCoords[i][j] = pdbInfo[j];
+      }
+    }
+  }
+
+  Rectangle[][] rects;
+
+  public void buildDistanceMap() {
+    rects = new Rectangle[side][side];
     for (int i = 0; i < side; i++) {
       for (int j = 0; j < side; j++) {
         Rectangle r = new Rectangle(cellSize, cellSize);
-        if (j >= i && isContact[i][j] || i == j) {
-          r.setFill(Color.GREY);
-          totalScore += getWeight(i, j);
+        double colorPercent;
+        if (i < j) {
+          r.setFill(Color.rgb(0, 255, 0));
+        }
+        else if (i > j) {
+          double expected = distanceArray[j][i];
+          double actual = distanceArray[i][j];
+          if (actual <= expected) {
+            colorPercent = actual / expected;
+          }
+          else {
+            double maxDistanceAA = 3.8 * Math.abs(i - j);
+            colorPercent = Math.abs(actual - expected) / (maxDistanceAA - expected);
+          }
+          
+          int greenValue = (int) (colorPercent * 510);
+          int redValue = Math.min(255, 510 - greenValue);
+          greenValue = Math.min(255, greenValue);
+          r.setFill(Color.rgb(redValue, greenValue, 0));
         }
         else {
-          r.setFill(Color.WHITE);
+          r.setFill(Color.rgb(0, 0, 0));
         }
-        contactMap.add(r, j, i);
+        distanceMap.add(r, j, i);
+        rects[i][j] = r;
       }
     }
-    score.setText("Score: 0 of " + totalScore);
+    distanceMapLoaded = true;
+    getMaxMeanSquaredError();
   }
 
   public int getWeight(int i, int j) {
@@ -817,39 +928,56 @@ public class Controller {
     return 8;
   }
 
+  private double maxMeanSquaredError;
+  // divide the score of it by the multiples it is from it
   public void updateScore() {
     if (links == null) return;
-    int n = links.length;
-    boolean[][] tmp = new boolean[n][n];
+    if (!distanceMapLoaded) return;
+    double mse = getMeanSquaredError();
+    progressBar.setProgress(mse / maxMeanSquaredError);
+    updateDistanceMap(mse);
+  }
 
-    int newScore = 0;
-    for (int i = 0; i < links.length; i++) {
-      for (int j = i+1; j < links.length; j++) {
-        if (j == i+1) {
-          tmp[j][i] = true;
+  public void getMaxMeanSquaredError() {
+    double mse = 0;
+    int denom = 0;
+    for (int i = 0; i < side; i++) {
+      for (int j = 0; j < side; j++) {
+        if (i > j) continue;
+        if (i == j) {
+          denom++;
           continue;
         }
+        int range = Math.abs(i-j);
+        double expected = distanceArray[i][j];
+        double maxDistance = 3.8 * range;
+        double maxError = Math.max(maxDistance - expected, expected);
+        mse += Math.pow(maxError, 2) * getWeight(i, j);
+        denom++;
+      }
+    }
+    maxMeanSquaredError = (int) (mse / denom);
+  }
 
-        double distance = getDistance(links[i], links[j]);
-        // handle clash
-        if (distance < 4.0) {
-          undo();
-          return;
+  public double getMeanSquaredError() {
+    double mse = 0;
+    int denom = 0;
+    for (int i = 0; i < side; i++) {
+      for (int j = 0; j < side; j++) {
+        if (i < j) continue;
+        if (i == j) {
+          denom++;
+          continue;
         }
-        if (distance < 8.0) {
-          tmp[j][i] = true;
-          newScore += getWeight(i, j);
-        }
+        int range = Math.abs(i-j);
+        double actual = distanceArray[i][j];
+        double expected = distanceArray[j][i];
+        double error = Math.abs(actual - expected);
+        mse += Math.pow(error, 2) * getWeight(i, j);
+        denom++;
       }
     }
-    for (int i = 0; i < n; i++) {
-      for (int j = i+1; j < n; j++) {
-        if (tmp[j][i]) {
-          isContact[j][i] = true;
-        }
-      }
-    }
-    updateContactMap(newScore);
+    return mse / denom;
   }
 
   public double getDistance(Link a, Link b) {
@@ -867,21 +995,69 @@ public class Controller {
     return Math.sqrt(sum);
   }
 
-  public void updateContactMap(int newScore) {
-    contactMap.getChildren().clear();
+  public double getDistance(double[] a, double[] b) {
+    double x0, y0, z0, xF, yF, zF;
+    x0 = a[0];
+    y0 = a[1];
+    z0 = a[2];
+    xF = b[0];
+    yF = b[1];
+    zF = b[2];
+    double deltaX = xF - x0;
+    double deltaY = yF - y0;
+    double deltaZ = zF - z0;
+    double sum = Math.pow(deltaX, 2) + Math.pow(deltaY, 2) + Math.pow(deltaZ, 2);
+    return Math.sqrt(sum);
+  }
+
+  public void updateDistanceMap(double mse) {
+    // distanceMap.getChildren().clear();
     for (int i = 0; i < side; i++) {
       for (int j = 0; j < side; j++) {
-        Rectangle r = new Rectangle(cellSize, cellSize);
-        if (isContact[i][j] || i == j) {
-          r.setFill(Color.GREY);
+        if (i > j) {
+          distanceArray[i][j] = getDistance(links[i], links[j]);
         }
-        else {
-          r.setFill(Color.WHITE);
-        }
-        contactMap.add(r, j, i);
       }
     }
-    score.setText("Score: " + newScore + " of " + totalScore);
+    updateMapColors();
+    score.setText(" " + (int) mse + " / " + (int) maxMeanSquaredError);
+  }
+
+  public void updateMapColors() {
+    for (int i = 1; i < side; i++) {
+      for (int j = 0; j < i; j++) {
+      // only run on bottom triangle
+        if ((i < indexSelected && j < indexSelected) 
+          || (i > indexSelected && j > indexSelected)) continue;
+          // if they are both on the same side of the moving node, don't recalculate
+        double colorPercent;
+        double expected = distanceArray[j][i];
+        double actual = distanceArray[i][j];
+        if (actual <= expected) {
+          colorPercent = actual / expected;
+        }
+        else {
+          double maxDistanceAA = 3.8 * Math.abs(i - j);
+          colorPercent = Math.abs(actual - expected) / (maxDistanceAA - expected);
+        }
+        int greenValue = (int) (colorPercent * 510);
+        int redValue = Math.min(255, 510 - greenValue);
+        greenValue = Math.min(255, greenValue);
+        rects[i][j].setFill(Color.rgb(redValue, greenValue, 0));
+      }
+    }
+  }
+
+  public void checkClash() {
+    for (int i = 0; i < side; i++) {
+      for (int j = 0; j < side; j++) {
+        if (i <= j) continue;
+        if (distanceArray[i][j] < 1.8) {
+          undo();
+          undoStack.pollLast();
+        }
+      }
+    }
   }
 
   @FXML
@@ -922,7 +1098,7 @@ public class Controller {
     initPNGs();
     initShorthandMaps();
     initSecondaryMaps();
-    generateContactMap(null);
+    generateDistanceMap(null);
     resetSliders();
     SubScene view = initView(world);
     Pane viewport = new Pane(view);
